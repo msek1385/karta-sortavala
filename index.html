@@ -65,6 +65,8 @@ input[type=number]{width:70px;font:inherit;padding:3px 5px;border:1px solid var(
 #edgeBar{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);z-index:800;width:min(440px,calc(100% - 32px));box-sizing:border-box;
   background:var(--panel);color:var(--fg);border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.3);padding:10px 12px;font:13px/1.45 var(--sans)}
 #edgeBar[hidden]{display:none}
+.undo-ctl a{width:auto!important;padding:0 10px;font:600 13px/30px var(--sans);white-space:nowrap;color:#1d2524}
+.undo-ctl a.off{color:#a3aaa8;cursor:default}
 .leaflet-popup-content textarea{width:100%;font:inherit;padding:4px;margin:4px 0;min-height:52px;resize:vertical}
 .leaflet-popup-content{font:13px/1.45 var(--sans);min-width:220px}
 .leaflet-popup-content select,.leaflet-popup-content input[type=text]{width:100%;font:inherit;padding:4px;margin:4px 0}
@@ -619,12 +621,40 @@ function accInfo(){if(!SITE)return;const upd=ED.updated?`Данные от ${fmt
     :`<span class="role">Просмотр</span><div class="note">${upd} Карта обновляется сама каждые 5 минут.</div>`}
 function updSave(){if(ED.role!=="edit")return;const d=diff(),n=d.n+(d.lines?1:0);
   $("bSave").disabled=!n;$("bSave").textContent=n?`Сохранить на сайт (${n})`:"Изменений нет"}
-const _render=render;render=function(){_render();updSave()};
+const _render=render;render=function(){_render();updSave();histTrack()};
+
+/* ---------- отмена действий ----------
+   После каждой правки (любая правка заканчивается перерисовкой карты) запоминается прежнее состояние точек и линий.
+   «Отменить» (кнопка слева на карте или Ctrl+Z) возвращает предыдущее состояние. История сбрасывается,
+   когда с сайта загружается свежая версия карты. */
+const HIST={stack:[],last:null,max:50};
+const stateOf=()=>JSON.stringify({pts:S.pts.map(clean),lines:S.lines});
+function histTrack(){const cur=stateOf();
+  if(HIST.last!==null&&cur!==HIST.last){HIST.stack.push(HIST.last);if(HIST.stack.length>HIST.max)HIST.stack.shift()}
+  HIST.last=cur;updUndo()}
+function histReset(){HIST.stack=[];HIST.last=stateOf();updUndo()}
+function undo(){
+  if(!canEdit())return;
+  if(!HIST.stack.length)return msg("Отменять нечего.");
+  const prev=HIST.stack.pop(),st=JSON.parse(prev);
+  map.closePopup();linkChild=null;
+  S.pts=st.pts;S.lines=st.lines;HIST.last=prev;render();
+  msg("Последнее действие отменено."+(HIST.stack.length?"":" Больше отменять нечего."))}
+const UndoCtl=L.Control.extend({options:{position:"topleft"},
+  onAdd(){const d=L.DomUtil.create("div","leaflet-bar undo-ctl edit-only"),a=L.DomUtil.create("a","off",d);
+    a.href="#";a.setAttribute("role","button");a.textContent="↶ Отменить";
+    L.DomEvent.disableClickPropagation(d);L.DomEvent.on(a,"click",ev=>{L.DomEvent.preventDefault(ev);undo()});
+    this.btn=a;return d}});
+const undoCtl=new UndoCtl().addTo(map);
+function updUndo(){const a=undoCtl.btn,n=HIST.stack.length;a.classList.toggle("off",!n);
+  a.title=n?`Отменить последнее действие (Ctrl+Z). Можно отменить шагов: ${n}`:"Отменять пока нечего"}
+document.addEventListener("keydown",ev=>{ // Ctrl+Z при любой раскладке; в полях ввода работает обычная отмена набора
+  if((ev.ctrlKey||ev.metaKey)&&!ev.shiftKey&&!ev.altKey&&ev.code==="KeyZ"&&!/^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName)&&canEdit()){ev.preventDefault();undo()}});
 
 const b64enc=t=>{const b=new TextEncoder().encode(t);let s="";for(let i=0;i<b.length;i+=0x8000)s+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));return btoa(s)};
 const b64dec=s=>new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g,"")),c=>c.charCodeAt(0)));
 async function gh(url,opt={}){return fetch(API+url,{cache:"no-store",...opt,headers:{Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28",Authorization:"Bearer "+ED.token,...(opt.headers||{})}})}
-function applyDoc(doc){S.pts=doc.pts||[];S.lines=doc.lines||[];ED.updated=doc.updated||"";ED.by=doc.by||"";selTp=null;render();snapshot();accInfo()}
+function applyDoc(doc){S.pts=doc.pts||[];S.lines=doc.lines||[];ED.updated=doc.updated||"";ED.by=doc.by||"";selTp=null;render();snapshot();histReset();accInfo()}
 async function loadPublic(){const r=await fetch(DATA_PATH+"?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw new Error("нет файла данных ("+r.status+")");return r.json()}
 async function fetchRemote(){ // свежая версия прямо из репозитория, минуя кэш сайта
   const m=await gh(`/repos/${REPO}/contents/${DATA_PATH}`);
@@ -656,7 +686,7 @@ async function saveRemote(){
     const doc={updated:new Date().toISOString(),by:ED.login,pts:S.pts.map(clean),lines:S.lines};
     const r=await gh(`/repos/${REPO}/contents/${DATA_PATH}`,{method:"PUT",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({message:`Карта: изменено ${d.changed.length}, удалено ${d.deleted.length}${d.lines?", линии ЛЭП":""} (${ED.login})`,content:b64enc(docText(doc)),...(ED.sha?{sha:ED.sha}:{})})});
-    if(r.ok){ED.sha=(await r.json()).content.sha;ED.updated=doc.updated;ED.by=doc.by;snapshot();render();accInfo();
+    if(r.ok){ED.sha=(await r.json()).content.sha;ED.updated=doc.updated;ED.by=doc.by;snapshot();render();if(attempt)histReset();accInfo();
       msg(`Сохранено. Зрители увидят изменения в течение нескольких минут.${attempt?" Правки другого редактора, сохранённые раньше, тоже учтены.":""}`);return}
     if((r.status===409||r.status===422)&&attempt<2){
       // Кто-то сохранил раньше: берём его версию и накладываем поверх только свои изменения
@@ -672,7 +702,7 @@ async function saveRemote(){
 }
 async function refreshView(first){
   try{applyDoc(await loadPublic());if(first)fit();if(first)msg(`На карте ${S.pts.filter(p=>p.kind==="pole").length} опор и ${S.pts.filter(p=>p.kind==="tp").length} ТП.`)}
-  catch(e){if(first){loadEmbedded();render();fit();msg("Не удалось загрузить актуальные данные, показаны данные из файла карты.",true)}}
+  catch(e){if(first){loadEmbedded();render();histReset();fit();msg("Не удалось загрузить актуальные данные, показаны данные из файла карты.",true)}}
 }
 $("bLogin").onclick=()=>{$("fLogin").hidden=false;$("bLogin").hidden=true;$("tok").focus()};
 $("bCancel").onclick=()=>{$("fLogin").hidden=true;$("bLogin").hidden=false};
@@ -701,6 +731,7 @@ document.addEventListener("visibilitychange",()=>{if(ED.role==="view"&&document.
     msg(`На карте данные из файлов: ${EMB.files.map(f=>f.name).join("; ")}.`)}
   else{render();if(S.pts.length){fit();msg(EMB.files.length?`На карте данные из файлов: ${EMB.files.map(f=>f.name).join("; ")}. Правки, сделанные в этом браузере, сохранены.`:"Восстановлены правки, сделанные в этом браузере.")}
     else msg("Карта пуста. Загрузите данные OSM или свой файл.")}
+  histReset();
 })();
 </script>
 </body>
