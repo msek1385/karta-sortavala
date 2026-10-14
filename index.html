@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="karta-repo" content="msek1385/karta-sortavala">
+<title>Освещение Сортавалы, этап 2</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Карта на весь экран, справа панель управления (на телефоне панель снизу) */
+:root{
+  --bg:#f3f5f4; --panel:#ffffff; --fg:#1d2524; --muted:#5d6b69; --line:#d7dedc;
+  --accent:#0f6e64; --accent-fg:#ffffff; --tp:#b3261e; --warn:#a15c00; --ok:#1e7a3c;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#141a19; --panel:#1b2221; --fg:#e4ebe9; --muted:#9aa9a6; --line:#2e3937;
+  --accent:#4fb3a6; --accent-fg:#0c1514; --tp:#ff8a80; --warn:#f0b056; --ok:#7bd38f; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font:14px/1.45 var(--sans);display:flex}
+#map{flex:1;min-width:0;height:100%}
+#side{width:360px;max-width:100%;height:100%;overflow-y:auto;background:var(--panel);border-left:1px solid var(--line);
+  padding:16px;display:flex;flex-direction:column;gap:18px}
+h1{font-size:17px;margin:0;font-weight:600;text-wrap:balance}
+.sub{color:var(--muted);font-size:12.5px;margin-top:2px}
+h2{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 8px;font-weight:600}
+section{display:flex;flex-direction:column;gap:8px}
+button,.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:6px;padding:7px 10px;cursor:pointer;text-align:left}
+button:hover,.btn:hover{border-color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:500}
+button.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.row{display:flex;gap:6px;flex-wrap:wrap}
+.row>*{flex:1 1 auto}
+label.chk{display:flex;gap:8px;align-items:center;cursor:pointer}
+#sLinks{font:inherit;font-size:13px;padding:3px 5px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--fg);margin-left:auto}
+input[type=number]{width:70px;font:inherit;padding:3px 5px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--fg)}
+.stats{display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.stats b{font-family:var(--mono);font-weight:500;text-align:right}
+.msg{font-size:12.5px;color:var(--muted);min-height:1em}
+.msg.err{color:var(--tp)}
+#tplist{display:flex;flex-direction:column;gap:2px;max-height:280px;overflow-y:auto}
+.tpi{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:4px;cursor:pointer;border:1px solid transparent}
+.tpi:hover{border-color:var(--line)}
+.tpi.sel{border-color:var(--accent);background:var(--bg)}
+.sw{width:12px;height:12px;border-radius:2px;flex:none}
+.tpi .n{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.note{font-size:12px;color:var(--muted)}
+.tp-icon{background:var(--panel);border:2px solid #b3261e;border-radius:3px;font:600 10.5px/1 var(--sans);color:#1d2524;
+  padding:3px 4px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.35);transform:translate(-50%,-50%);display:inline-block}
+.tp-wrap{width:0!important;height:0!important}
+.leaflet-popup-content{font:13px/1.45 var(--sans);min-width:220px}
+.leaflet-popup-content select,.leaflet-popup-content input[type=text]{width:100%;font:inherit;padding:4px;margin:4px 0}
+.pp-h{font-weight:600;margin-bottom:4px}
+.pp-k{color:#5d6b69;font-size:12px}
+.pp-row{display:flex;gap:6px;margin-top:6px}
+.pp-row button{flex:1;text-align:center}
+.legend{display:grid;grid-template-columns:auto 1fr;gap:4px 8px;align-items:center;font-size:12.5px}
+.lg-dot{width:10px;height:10px;border-radius:50%;border:2px solid #333;margin:0 auto}
+.lg-sq{width:14px;height:11px;border:2px solid #b3261e;border-radius:2px}
+.lg-l{width:22px;border-top:2px solid var(--fg)}
+.lg-ld{width:22px;border-top:2px dashed var(--fg)}
+.lg-p{width:22px;border-top:2px solid #8a8f99}
+body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([data-role="view"]) .view-only,body:not([data-role="local"]) .local-only{display:none!important}
+#acc{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--bg)}
+#acc input[type=password]{width:100%;font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--fg);margin-top:4px}
+.role{font-weight:600}
+@media (max-width:760px){
+  body{flex-direction:column}
+  #map{flex:1 1 55%;min-height:0}
+  #side{width:100%;height:45%;border-left:0;border-top:1px solid var(--line)}
+}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<aside id="side">
+  <div>
+    <h1>Наружное освещение г. Сортавала, этап 2</h1>
+    <div class="sub">Опоры освещения и ТП/КТП, от которых они запитаны. Подложка Яндекс.Карт, её можно сменить кнопкой слоёв слева вверху.</div>
+  </div>
+
+  <section id="acc" class="site-only">
+    <h2>Доступ</h2>
+    <div id="accInfo"></div>
+    <button class="view-only" id="bLogin">Войти для редактирования</button>
+    <form id="fLogin" hidden>
+      <label for="tok">Ключ доступа редактора (GitHub)</label>
+      <input type="password" id="tok" autocomplete="off" spellcheck="false" placeholder="ghp_…">
+      <div class="row" style="margin-top:6px"><button type="submit" class="primary">Войти</button><button type="button" id="bCancel">Отмена</button></div>
+      <div class="note">Ключ вводится один раз на этом компьютере. Как его получить, написано в инструкции для редакторов.</div>
+    </form>
+    <div class="row edit-only">
+      <button class="primary" id="bSave" disabled>Изменений нет</button>
+      <button id="bReload">Обновить</button>
+      <button id="bLogout">Выйти</button>
+    </div>
+  </section>
+
+  <section class="edit-only">
+    <h2>Данные</h2>
+    <button class="primary" id="bOsm">Загрузить из OpenStreetMap (видимая область)</button>
+    <label class="btn" for="fIn">Открыть файл: Excel, CSV, KML или GeoJSON</label>
+    <input type="file" id="fIn" accept=".csv,.txt,.xlsx,.xls,.kml,.geojson,.json" hidden>
+    <div class="row">
+      <button id="bTpl">Шаблон CSV</button>
+      <button id="bReset" class="local-only">Исходные данные</button>
+      <button id="bClear">Очистить карту</button>
+    </div>
+  </section>
+  <div class="msg" id="msg" role="status">Загружаю карту…</div>
+
+  <section>
+    <h2>Сводка</h2>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <section>
+    <h2>Слои и привязка</h2>
+    <label class="chk"><input type="checkbox" id="cPoles" checked> Опоры освещения</label>
+    <label class="chk"><input type="checkbox" id="cOtherPoles"> Прочие опоры ЛЭП из OSM (без светильника)</label>
+    <label class="chk"><input type="checkbox" id="cTp" checked> ТП / КТП</label>
+    <label class="chk" for="sLinks">Связь опор с ТП
+      <select id="sLinks">
+        <option value="tree">условная трасса по опорам</option>
+        <option value="rays">лучи от каждой опоры к ТП</option>
+        <option value="none">не показывать</option>
+      </select></label>
+    <label class="chk"><input type="checkbox" id="cPower" checked> Линии электропередачи из OSM</label>
+    <label class="chk"><input type="checkbox" id="cAuto" checked> Привязывать без данных к ближайшей ТП,
+      не дальше <input type="number" id="nRad" value="600" min="50" step="50"> м</label>
+    <div class="note">Принадлежность опоры к ТП показана цветом. Условная трасса соединяет опоры одной ТП по кратчайшим расстояниям: это наглядная схема, а не проект сети. Привязка по близости показана пунктиром. Если в файле одна ТП и нет столбца «ТП», все опоры файла привязываются к этой ТП.</div>
+  </section>
+
+  <section class="edit-only">
+    <h2>Правка</h2>
+    <div class="row">
+      <button id="bAddPole">+ Опора</button>
+      <button id="bAddTp">+ ТП/КТП</button>
+    </div>
+    <div class="note">Включите режим и щёлкните по карте. Чтобы привязать опору к ТП, щёлкните по опоре и выберите ТП в списке.</div>
+  </section>
+
+  <section>
+    <h2>ТП / КТП <span id="tpcnt"></span></h2>
+    <div id="tplist"></div>
+  </section>
+
+  <section>
+    <h2>Экспорт</h2>
+    <div class="row">
+      <button id="bGeo">GeoJSON</button>
+      <button id="bCsv">CSV (Excel)</button>
+      <button id="bKml">KML</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Условные обозначения</h2>
+    <div class="legend">
+      <span class="lg-dot"></span><span>Опора освещения (цвет — по своей ТП)</span>
+      <span class="lg-dot" style="border-color:#8a8f99;background:#fff"></span><span>Опора без привязки</span>
+      <span class="lg-sq"></span><span>ТП / КТП</span>
+      <span class="lg-l"></span><span>Связь с ТП по данным (условная трасса или луч)</span>
+      <span class="lg-ld"></span><span>Связь с ТП по близости (предположение)</span>
+      <span class="lg-p"></span><span>Линия электропередачи (OSM)</span>
+    </div>
+  </section>
+  <div class="note">Картография © Яндекс; © участники OpenStreetMap (ODbL); снимки © Esri.</div>
+</aside>
+
+<script id="emb" type="application/json">{"ver": "276affcf2ddf", "files": [{"name": "ул. Горького, ул. Садовая", "rows": [["Широта", "Долгота", "Подпись"], ["61.70388155841818", "30.688665369155622", "ТП №75"], ["61.70391848581483", "30.688810208442334", "ОГС 0,4-9"], ["61.70380260942176", "30.68892286122104", "ОГС 0,4-9"], ["61.704015261877295", "30.689343968036393", "ОГС 0,4-9"], ["61.704190985542354", "30.689700701835378", "ОГС 0,4-9"], ["61.70356633906173", "30.68843680959195", "ОГС 0,4-9"], ["61.70341607959705", "30.688122991137202", "ОГС 0,4-9"], ["61.70321997714854", "30.68767774444073", "ОГС 0,4-9"], ["61.703051888321106", "30.687323692850757", "ОГС 0,4-9"], ["61.70285451014759", "30.686913314871486", "ОГС 0,4-9"], ["61.702692786424", "30.68657803874458", "ОГС 0,4-9"], ["61.70426573618322", "30.689856368712917", "ОГС 0,4-9"], ["61.70430138993663", "30.689787972382966", "ОГС 0,4-9"], ["61.704513402360966", "30.690403539351912", "ОГС 0,4-9"], ["61.704609539586926", "30.69060470502798", "ОГС 0,4-9"], ["61.70484637971757", "30.691100913695752", "ОГС 0,4-9"], ["61.70505647830563", "30.69155152481025", "ОГС 0,4-9"], ["61.70506475486973", "30.691774148158448", "ОГС 0,4-9"], ["61.70517044023278", "30.691960561684926", "ОГС 0,4-9"], ["61.70534615730584", "30.692330706529003", "ОГС 0,4-9"], ["61.705533333083615", "30.69272230904516", "ОГС 0,4-9"], ["61.70571923442011", "30.693138051442485", "ОГС 0,4-9"], ["61.70588603534671", "30.693486738614403", "ОГС 0,4-9"], ["61.70605156208922", "30.693822014741283", "ОГС 0,4-9"], ["61.706219634476554", "30.69415192645011", "ОГС 0,4-9"], ["61.70645900874045", "30.69465886395391", "ОГС 0,4-9"], ["61.70665127075369", "30.695069241933208", "ОГС 0,4-9"], ["61.70685371753492", "30.694629359654765", "ОГС 0,4-9"], ["61.706856264018015", "30.69548498433051", "ОГС 0,4-9"], ["61.70720513142184", "30.695090699605316", "ОГС 0,4-9"], ["61.71036767578809", "30.688334215096717", "ОГС 0,4-7"], ["61.71014615548496", "30.688387859277032", "ОГС 0,4-7"], ["61.70988134751265", "30.688586342744085", "ОГС 0,4-7"], ["61.70963690735028", "30.688795555047243", "ОГС 0,4-7"], ["61.70938991897149", "30.689010131768423", "ОГС 0,4-7"], ["61.70916075252447", "30.689224708489633", "ОГС 0,4-7"], ["61.708941769719274", "30.68943928521074", "ОГС 0,4-7"], ["61.708168952434654", "30.6900749687473", "ОГС 0,4-7"], ["61.70846942388032", "30.68984966318994", "ОГС 0,4-7"], ["61.708734243915146", "30.689624357632525", "ОГС 0,4-7"], ["61.707910493364345", "30.690329778603683", "ОГС 0,4-9"], ["61.707645666136116", "30.69072674553789", "ОГС 0,4-9"], ["61.70743813167303", "30.690903771332863", "ОГС 0,4-9"], ["61.70727133915677", "30.691389251164555", "ОГС 0,4-9"], ["61.7069912275251", "30.69198201935678", "ОГС 0,4-9"], ["61.70727897850167", "30.69270353358179", "ОГС 0,4-9"], ["61.706820612824686", "30.69177280705357", "ОГС 0,4-9"], ["61.706930111908875", "30.69129805605793", "ОГС 0,4-9"], ["61.70678878161346", "30.69242190163517", "ОГС 0,4-9"], ["61.70663344487361", "30.691979337147714", "ОГС 0,4-9"], ["61.70639661848876", "30.69250773232362", "ОГС 0,4-9"], ["61.70616870321113", "30.692995894364326", "ОГС 0,4-9"], ["61.70622600050691", "30.693095136097867", "ОГС 0,4-9"], ["61.70588858154356", "30.693599391392627", "ОГС 0,4-9"], ["61.70569504144968", "30.693972218445666", "ОГС 0,4-9"], ["61.70541746208732", "30.694562304428953", "ОГС 0,4-9"], ["61.70515643333617", "30.69509606402291", "ОГС 0,4-9"], ["61.70499981500045", "30.695450115612804", "ОГС 0,4-9"], ["61.7048088159743", "30.69587926905517", "ОГС 0,4-9"], ["61.70452613524276", "30.696458626202404", "ОГС 0,4-9"], ["61.7043364066338", "30.697231102398685", "ОГС 0,4-9"], ["61.70398686969591", "30.69748859446398", "ОГС 0,4-9"], ["61.703822605452125", "30.697831917218025", "ОГС 0,4-9"], ["61.7034991673631", "30.698668766430625", "ОГС 0,4-9"], ["61.70359944625662", "30.698821652344403", "ОГС 0,4-9"], ["61.704903997183294", "30.692085954955715", "ОГС 0,4-9"], ["61.70474610424645", "30.692397091201425", "ОГС 0,4-9"], ["61.70451945007799", "30.692622396758686", "ОГС 0,4-9"], ["61.70439720893415", "30.692917439750317", "ОГС 0,4-9"]]}]}</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+"use strict";
+const CENTER=[61.7035,30.6915];
+const STORE="sortavala-light-v1";
+const S={pts:[],lines:[]}; // pts: {id,kind:'pole'|'tp',lamp,name,lat,lon,tp,note,src,auto}
+let mode=null, selTp=null, seq=1;
+
+/* Подложки. Яндекс.Карты используют эллиптическую проекцию Меркатора (EPSG:3395), OSM и Esri — сферическую (EPSG:3857),
+   поэтому при смене подложки меняется и проекция карты. */
+const BASE_KEY="sortavala-light-base";
+const sc=L.Browser.retina?2:1, ya={maxZoom:19,crs:L.CRS.EPSG3395,attribution:'© <a href="https://yandex.ru/maps/" target="_blank">Яндекс</a>'};
+const yMap=L.tileLayer("https://core-renderer-tiles.maps.yandex.net/tiles?l=map&x={x}&y={y}&z={z}&scale={sc}&lang=ru_RU",{...ya,sc});
+const ySat=L.tileLayer("https://core-sat.maps.yandex.net/tiles?l=sat&x={x}&y={y}&z={z}&lang=ru_RU",{...ya});
+const yHyb=L.layerGroup([L.tileLayer("https://core-sat.maps.yandex.net/tiles?l=sat&x={x}&y={y}&z={z}&lang=ru_RU",{...ya}),
+  L.tileLayer("https://core-renderer-tiles.maps.yandex.net/tiles?l=skl&x={x}&y={y}&z={z}&scale={sc}&lang=ru_RU",{...ya,sc})],{crs:L.CRS.EPSG3395});
+const osm=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© участники OpenStreetMap"});
+const sat=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Спутник © Esri"});
+const BASES={"Яндекс: схема":yMap,"Яндекс: спутник":ySat,"Яндекс: гибрид":yHyb,"OpenStreetMap":osm,"Спутник Esri":sat};
+let baseName="Яндекс: схема";try{const b=localStorage.getItem(BASE_KEY);if(BASES[b])baseName=b}catch(e){}
+const crsOf=l=>l.options.crs||L.CRS.EPSG3857;
+const map=L.map("map",{preferCanvas:true,crs:crsOf(BASES[baseName]),layers:[BASES[baseName]]}).setView(CENTER,14);
+L.control.layers(BASES,null,{position:"topleft"}).addTo(map);
+map.on("baselayerchange",e=>{
+  if(!e.auto)try{localStorage.setItem(BASE_KEY,e.name)}catch(err){}
+  const crs=crsOf(e.layer);if(map.options.crs===crs)return;
+  const c=map.getCenter(),z=map.getZoom();map.options.crs=crs;map._resetView(c,z,true);render();
+});
+// Если Яндекс не отдаёт плитки (нет связи или доступ закрыт), переключаемся на OpenStreetMap
+let yaOk=0,yaErr=0;
+for(const l of [yMap,ySat,...yHyb.getLayers()]){l.on("tileload",()=>yaOk++);l.on("tileerror",()=>{
+  if(++yaErr>=6&&!yaOk&&map.hasLayer(l)){map.removeLayer(BASES[baseName]);for(const b of Object.values(BASES))map.removeLayer(b);
+    osm.addTo(map);map.fire("baselayerchange",{layer:osm,name:"OpenStreetMap",auto:true});yaErr=-1e9;
+    msg("Яндекс.Карты не загрузились, включена подложка OpenStreetMap. Переключить обратно можно кнопкой слоёв слева вверху.",true)}})}
+L.control.scale({imperial:false}).addTo(map);
+const gPower=L.layerGroup().addTo(map), gLinks=L.layerGroup().addTo(map), gPoles=L.layerGroup().addTo(map), gTp=L.layerGroup().addTo(map);
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm=s=>String(s??"").toLowerCase().replace(/ё/g,"е").replace(/[^a-zа-я0-9]/g,"");
+const msg=(t,err)=>{const m=$("msg");m.textContent=t;m.className="msg"+(err?" err":"")};
+function hue(str){let h=0;for(const c of String(str))h=(h*31+c.charCodeAt(0))>>>0;return h%360}
+const tpColor=tp=>`hsl(${hue(tp.id)} 70% 42%)`;
+function dist(a,b){const R=6371000,r=Math.PI/180,dl=(b.lat-a.lat)*r,dn=(b.lon-a.lon)*r;
+  const x=Math.sin(dl/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
+const tpLabel=t=>t.name||("ТП #"+t.id);
+const newId=pfx=>pfx+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+/* ---------- хранение ---------- */
+function save(){if(SITE)return;try{localStorage.setItem(STORE,JSON.stringify({pts:S.pts,lines:S.lines,seq,ver:S.ver}))}catch(e){}}
+function load(){try{const d=JSON.parse(localStorage.getItem(STORE)||"null");if(d){S.pts=d.pts||[];S.lines=d.lines||[];seq=d.seq||1;S.ver=d.ver}}catch(e){}}
+
+/* ---------- привязка ---------- */
+function resolve(){
+  const tps=S.pts.filter(p=>p.kind==="tp"), byKey=new Map();
+  for(const t of tps){byKey.set(norm(t.name),t);byKey.set(norm(t.id),t);
+    const num=String(t.name||"").match(/\d+[а-яa-z]?/i); if(num&&!byKey.has("n"+num[0].toLowerCase()))byKey.set("n"+num[0].toLowerCase(),t)}
+  const auto=$("cAuto").checked, rad=+$("nRad").value||600;
+  for(const p of S.pts){if(p.kind!=="pole")continue;p.link=null;p.linkAuto=false;p.linkDist=null;
+    if(p.tp){let t=byKey.get(norm(p.tp));
+      if(!t){const num=String(p.tp).match(/\d+[а-яa-z]?/i);if(num)t=byKey.get("n"+num[0].toLowerCase())}
+      if(t){p.link=t.id;p.linkDist=dist(p,t)}}
+    if(!p.link&&auto&&p.lamp!==false&&tps.length){let best=null,bd=Infinity;
+      for(const t of tps){const d=dist(p,t);if(d<bd){bd=d;best=t}}
+      if(best&&bd<=rad){p.link=best.id;p.linkAuto=true;p.linkDist=bd}}}
+}
+
+/* условная трасса: минимальное остовное дерево (алгоритм Прима) от ТП по её опорам */
+function tree(t,poles){
+  const nodes=[t,...poles], n=nodes.length, inT=new Array(n).fill(false), best=new Array(n).fill(Infinity), par=new Array(n).fill(-1), edges=[];
+  best[0]=0;
+  for(let k=0;k<n;k++){let u=-1;for(let i=0;i<n;i++)if(!inT[i]&&(u<0||best[i]<best[u]))u=i;
+    inT[u]=true;if(par[u]>=0)edges.push([nodes[par[u]],nodes[u]]);
+    for(let v=0;v<n;v++)if(!inT[v]){const d=dist(nodes[u],nodes[v]);if(d<best[v]){best[v]=d;par[v]=u}}}
+  return edges;
+}
+
+/* ---------- отрисовка ---------- */
+function render(){
+  resolve();
+  gPower.clearLayers();gLinks.clearLayers();gPoles.clearLayers();gTp.clearLayers();
+  const tps=new Map(S.pts.filter(p=>p.kind==="tp").map(t=>[t.id,t]));
+  if($("cPower").checked)for(const l of S.lines)
+    L.polyline(l.coords,{color:"#8a8f99",weight:l.minor?1.5:2.5,opacity:.85,interactive:false}).addTo(gPower);
+  const showOther=$("cOtherPoles").checked, ls=$("sLinks").value;
+  if(ls==="tree"&&$("cPoles").checked)for(const t of tps.values()){
+    const dim=selTp&&t.id!==selTp, col=tpColor(t);
+    for(const [a,b] of tree(t,S.pts.filter(p=>p.kind==="pole"&&p.link===t.id&&(p.lamp!==false||showOther))))
+      L.polyline([[a.lat,a.lon],[b.lat,b.lon]],{color:col,weight:2,opacity:dim?.15:.85,dashArray:(b.linkAuto||a.linkAuto)?"4 4":null,interactive:false}).addTo(gLinks);
+  }
+  for(const p of S.pts){
+    if(p.kind!=="pole")continue;
+    if(p.lamp===false&&!showOther)continue;
+    if(!$("cPoles").checked)continue;
+    const t=p.link?tps.get(p.link):null, col=t?tpColor(t):"#8a8f99";
+    const dim=selTp&&p.link!==selTp;
+    if(t&&ls==="rays")L.polyline([[p.lat,p.lon],[t.lat,t.lon]],{color:col,weight:1.6,opacity:dim?.15:.8,dashArray:p.linkAuto?"4 4":null,interactive:false}).addTo(gLinks);
+    const m=L.circleMarker([p.lat,p.lon],{radius:p.lamp===false?3.5:5,color:p.lamp===false?"#8a8f99":"#222",weight:1.2,
+      fillColor:p.lamp===false?"#ffffff":col,fillOpacity:dim?.25:.95,opacity:dim?.3:1});
+    m.bindPopup(()=>polePopup(p));m.addTo(gPoles);
+  }
+  if($("cTp").checked)for(const t of tps.values()){
+    const n=S.pts.filter(p=>p.link===t.id).length;
+    const ic=L.divIcon({className:"tp-wrap",html:`<span class="tp-icon" style="border-color:${tpColor(t)}">${esc(tpLabel(t))}</span>`,iconSize:[0,0]});
+    const m=L.marker([t.lat,t.lon],{icon:ic,zIndexOffset:1000,title:tpLabel(t)+" · опор: "+n});
+    m.bindPopup(()=>tpPopup(t));m.addTo(gTp);
+  }
+  stats();tpList();save();
+}
+function stats(){
+  const poles=S.pts.filter(p=>p.kind==="pole"&&p.lamp!==false), other=S.pts.filter(p=>p.kind==="pole"&&p.lamp===false);
+  const ex=poles.filter(p=>p.link&&!p.linkAuto).length, au=poles.filter(p=>p.linkAuto).length;
+  const rows=[["Опор освещения",poles.length],["  привязано по данным",ex],["  привязано по близости",au],["  без привязки",poles.length-ex-au],
+    ["ТП / КТП",S.pts.filter(p=>p.kind==="tp").length],["Прочих опор ЛЭП (OSM)",other.length],["Линий ЛЭП (OSM)",S.lines.length]];
+  $("stats").innerHTML=rows.map(([k,v])=>`<span>${esc(k).replace(/^  /,"&nbsp;&nbsp;&nbsp;")}</span><b>${v}</b>`).join("");
+}
+function tpList(){
+  const tps=S.pts.filter(p=>p.kind==="tp").sort((a,b)=>tpLabel(a).localeCompare(tpLabel(b),"ru",{numeric:true}));
+  $("tpcnt").textContent=tps.length?`(${tps.length})`:"";
+  $("tplist").innerHTML=tps.length?tps.map(t=>{const n=S.pts.filter(p=>p.link===t.id).length;
+    return `<div class="tpi${selTp===t.id?" sel":""}" data-id="${esc(t.id)}" tabindex="0"><span class="sw" style="background:${tpColor(t)}"></span>${esc(tpLabel(t))}<span class="n">${n} оп.</span></div>`}).join("")
+    :`<div class="note">ТП пока нет.</div>`;
+}
+$("tplist").addEventListener("click",e=>{const el=e.target.closest(".tpi");if(!el)return;const id=el.dataset.id;
+  selTp=selTp===id?null:id;render();
+  if(selTp){const pts=S.pts.filter(p=>p.id===id||p.link===id).map(p=>[p.lat,p.lon]);map.fitBounds(L.latLngBounds(pts).pad(.2),{maxZoom:17})}});
+
+function polePopup(p){
+  const tps=S.pts.filter(x=>x.kind==="tp").sort((a,b)=>dist(p,a)-dist(p,b));
+  const div=document.createElement("div");
+  const cur=p.link&&!p.linkAuto?p.link:"";
+  div.innerHTML=`<div class="pp-h">${p.lamp===false?"Опора ЛЭП":"Опора освещения"} ${esc(p.name||"")}${p.ptype?" · "+esc(p.ptype):""}</div>
+   <div class="pp-k">${p.lat.toFixed(6)}, ${p.lon.toFixed(6)} · источник: ${esc(p.src)}${p.row?", строка "+p.row:""}</div>
+   ${p.note?`<div class="pp-k">${esc(p.note)}</div>`:""}
+   <div style="margin-top:6px">${p.link?(p.linkAuto?"Ближайшая ТП":"Запитана от")+": <b>"+esc(tpLabel(S.pts.find(t=>t.id===p.link)))+"</b>, "+Math.round(p.linkDist)+" м":"Не привязана к ТП"}</div>
+   <div class="edit-only"><label class="pp-k">Номер опоры<input type="text" class="nm" value="${esc(p.name||"")}"></label>
+   <label class="pp-k">Подключена к ТП<select class="sel"><option value="">— не указано —</option>${tps.map(t=>`<option value="${esc(t.id)}"${t.id===cur?" selected":""}>${esc(tpLabel(t))} (${Math.round(dist(p,t))} м)</option>`).join("")}</select></label>
+   <label class="chk pp-k"><input type="checkbox" class="lamp"${p.lamp!==false?" checked":""}> Опора освещения</label>
+   <div class="pp-row"><button class="ok">Применить</button><button class="del">Удалить</button></div></div>`;
+  div.querySelector(".ok").onclick=()=>{p.name=div.querySelector(".nm").value.trim();
+    const v=div.querySelector(".sel").value;p.tp=v?tpLabel(S.pts.find(t=>t.id===v)):"";
+    p.lamp=div.querySelector(".lamp").checked;map.closePopup();render()};
+  div.querySelector(".del").onclick=()=>{S.pts=S.pts.filter(x=>x!==p);map.closePopup();render()};
+  return div;
+}
+function tpPopup(t){
+  const n=S.pts.filter(p=>p.link===t.id), ex=n.filter(p=>!p.linkAuto).length;
+  const div=document.createElement("div");
+  div.innerHTML=`<div class="pp-h">${esc(tpLabel(t))}</div>
+   <div class="pp-k">${t.lat.toFixed(6)}, ${t.lon.toFixed(6)} · источник: ${esc(t.src)}${t.row?", строка "+t.row:""}</div>
+   ${t.note?`<div class="pp-k">${esc(t.note)}</div>`:""}
+   <div style="margin-top:6px">Опор: <b>${n.length}</b> (по данным ${ex}, по близости ${n.length-ex})</div>
+   <div class="edit-only"><label class="pp-k">Название (например, ТП-12 или КТП-5)<input type="text" class="nm" value="${esc(t.name||"")}"></label>
+   <div class="pp-row"><button class="ok">Применить</button><button class="fix">Закрепить ближние</button><button class="del">Удалить</button></div></div>`;
+  div.querySelector(".ok").onclick=()=>{const old=tpLabel(t);t.name=div.querySelector(".nm").value.trim();
+    for(const p of S.pts)if(p.tp&&norm(p.tp)===norm(old))p.tp=tpLabel(t);map.closePopup();render()};
+  div.querySelector(".fix").title="Сделать привязку по близости постоянной для опор этой ТП";
+  div.querySelector(".fix").onclick=()=>{for(const p of n)if(p.linkAuto)p.tp=tpLabel(t);map.closePopup();render()};
+  div.querySelector(".del").onclick=()=>{S.pts=S.pts.filter(x=>x!==t);map.closePopup();render()};
+  return div;
+}
+
+/* ---------- OpenStreetMap (Overpass) ---------- */
+const OVERPASS=["https://overpass-api.de/api/interpreter","https://overpass.kumi.systems/api/interpreter","https://maps.mail.ru/osm/tools/overpass/api/interpreter"];
+async function loadOsm(){
+  const b=map.getBounds(), bb=[b.getSouth(),b.getWest(),b.getNorth(),b.getEast()].map(v=>v.toFixed(5)).join(",");
+  if((b.getNorth()-b.getSouth())*(b.getEast()-b.getWest())>0.08){msg("Слишком большая область. Приблизьте карту до города или района.",true);return}
+  const q=`[out:json][timeout:90];(node["highway"="street_lamp"](${bb});node["power"~"^(pole|tower|portal)$"](${bb});nwr["power"~"^(substation|transformer)$"](${bb});way["power"~"^(line|minor_line|cable)$"](${bb}););out body geom;`;
+  msg("Запрашиваю данные OpenStreetMap…");$("bOsm").disabled=true;
+  let data=null,lastErr="";
+  for(const url of OVERPASS){try{const r=await fetch(url,{method:"POST",body:"data="+encodeURIComponent(q),headers:{"Content-Type":"application/x-www-form-urlencoded"}});
+      if(!r.ok)throw new Error("HTTP "+r.status);data=await r.json();break}catch(e){lastErr=e.message}}
+  $("bOsm").disabled=false;
+  if(!data){msg("Сервер OpenStreetMap не ответил ("+lastErr+"). Попробуйте ещё раз через минуту.",true);return}
+  const have=new Set(S.pts.map(p=>p.osm).filter(Boolean)), haveL=new Set(S.lines.map(l=>l.osm));
+  let nl=0,np=0,nt=0,nw=0; const lampAt=new Map();
+  for(const e of data.elements){const t=e.tags||{},key=e.type[0]+e.id;
+    if(e.type==="way"&&/^(line|minor_line|cable)$/.test(t.power)){if(!haveL.has(key)&&e.geometry){S.lines.push({osm:key,minor:t.power!=="line",coords:e.geometry.map(g=>[+g.lat.toFixed(6),+g.lon.toFixed(6)]),v:t.voltage||""});nw++}continue}
+    if(have.has(key))continue;
+    let lat=e.lat,lon=e.lon;
+    if(lat==null&&e.geometry){lat=e.geometry.reduce((s,g)=>s+g.lat,0)/e.geometry.length;lon=e.geometry.reduce((s,g)=>s+g.lon,0)/e.geometry.length}
+    if(lat==null&&e.bounds){lat=(e.bounds.minlat+e.bounds.maxlat)/2;lon=(e.bounds.minlon+e.bounds.maxlon)/2}
+    if(lat==null)continue;
+    const base={id:"o"+key,osm:key,lat:+lat.toFixed(7),lon:+lon.toFixed(7),src:"OSM",note:[t.operator,t.voltage&&("напряжение "+t.voltage),t.lamp_mount,t.light_source,t["lamp_type"]].filter(Boolean).join(", ")};
+    if(/^(substation|transformer)$/.test(t.power)){
+      if(t.power==="substation"&&t.substation&&!/minor_distribution|distribution/.test(t.substation)&&!t.ref&&!t.name)base.note=(base.note?base.note+", ":"")+"подстанция ("+t.substation+")";
+      S.pts.push({...base,kind:"tp",name:t.ref?(/^\d/.test(t.ref)?"ТП-"+t.ref:t.ref):(t.name||""),note:base.note+(t.power==="transformer"?" (трансформатор)":"")});nt++}
+    else if(t.highway==="street_lamp"){S.pts.push({...base,kind:"pole",lamp:true,name:t.ref||"",tp:""});nl++}
+    else{S.pts.push({...base,kind:"pole",lamp:!!(t.highway==="street_lamp"||t["light:count"]||t["pole:lamp"]||t.lamp),name:t.ref||"",tp:""});np++}
+  }
+  // трансформатор, стоящий внутри подстанции, дублирует ТП
+  const tps=S.pts.filter(p=>p.kind==="tp");
+  for(const a of tps)if(/трансформатор/.test(a.note||"")&&tps.some(b=>b!==a&&!/трансформатор/.test(b.note||"")&&dist(a,b)<25))S.pts=S.pts.filter(p=>p!==a);
+  render();
+  msg(`OSM: светильников ${nl}, прочих опор ${np}, ТП/подстанций ${nt}, линий ${nw}. В OSM данные неполные, проверьте по месту.`);
+}
+
+/* ---------- импорт файлов ---------- */
+const ALIAS={
+  kind:["тип","вид","объект","type","kind","категория"],
+  name:["номер","№","номеропоры","no","id","ref","name","наименование","название","обозначение","подпись","метка","label"],
+  ptype:["типопоры","марка","маркаопоры","типстойки"],
+  lat:["широта","lat","latitude","y","шир","n"],
+  lon:["долгота","lon","lng","long","longitude","x","долг","e"],
+  tp:["тп","ктп","тпктп","питание","подключенак","подключена","запитанаот","источник","feeder","tp","substation","фидерттп","трансформаторнаяподстанция"],
+  note:["примечание","комментарий","note","comment","описание","description","улица","адрес"]
+};
+function pickCols(headers){const h=headers.map(norm),out={};
+  for(const [k,al] of Object.entries(ALIAS)){let i=h.findIndex(x=>al.includes(x));if(i<0)i=h.findIndex(x=>al.some(a=>a.length>2&&x.startsWith(a)));if(i>=0)out[k]=i}
+  return out}
+const num=v=>{if(typeof v==="number")return v;const s=String(v??"").trim().replace(",",".").replace(/[^\d.\-]/g,"");return s?parseFloat(s):NaN};
+const isTpType=s=>/(^|[^а-я])(к?тп|рп|ктпн|трансформ|подстан)/i.test(String(s||""));
+const POLE_TYPE=/^(огс|огк|окк|сфг|св|ск|снв|сф|нфг|ж\/?б|дер|мет|опора)/i;
+// Разбор таблицы (строки из Excel или CSV). Если в файле одна ТП и нет столбца «ТП», все опоры файла относятся к ней.
+function importRows(rows,src){
+  let h=rows.findIndex((r,i)=>i<15&&r&&(c=>c.lat!=null&&c.lon!=null)(pickCols(r)));
+  if(h<0)return null;
+  const c=pickCols(rows[h]),added=[];let bad=0;
+  rows.slice(h+1).forEach((r,i)=>{if(!r||!r.some(v=>String(v??"").trim()))return;
+    let lat=num(r[c.lat]),lon=num(r[c.lon]);
+    if(lat<45&&lon>45)[lat,lon]=[lon,lat];
+    if(!isFinite(lat)||!isFinite(lon)||!lat||!lon){bad++;return}
+    const kindTxt=c.kind!=null?r[c.kind]:"";let name=c.name!=null?String(r[c.name]??"").trim():"";
+    const tp=isTpType(kindTxt)||(!kindTxt&&isTpType(name)&&!(c.tp!=null&&String(r[c.tp]??"").trim()));
+    let ptype=c.ptype!=null?String(r[c.ptype]??"").trim():"";
+    if(!tp&&!ptype&&POLE_TYPE.test(name)){ptype=name;name=""}
+    const p={id:newId("f"),kind:tp?"tp":"pole",name,lat:+lat.toFixed(7),lon:+lon.toFixed(7),
+      tp:!tp&&c.tp!=null?String(r[c.tp]??"").trim():"",note:c.note!=null?String(r[c.note]??"").trim():"",src:src||"файл",row:h+i+2};
+    if(!tp){p.lamp=true;p.ptype=ptype}
+    added.push(p)});
+  const tps=added.filter(p=>p.kind==="tp");
+  if(tps.length===1)for(const p of added)if(p.kind==="pole"&&!p.tp)p.tp=tpLabel(tps[0]);
+  S.pts.push(...added);
+  return {n:added.length,tp:tps.length,poles:added.length-tps.length,bad};
+}
+function addRows(rows,src){const r=importRows(rows,src);
+  if(!r){msg("Не нашла столбцы широты и долготы. Назовите их «Широта» и «Долгота» (см. шаблон CSV).",true);return}
+  render();fit();msg(`${src||"Файл"}: ТП ${r.tp}, опор ${r.poles}`+(r.bad?`, пропущено строк без координат: ${r.bad}`:""))}
+function parseCsv(text){const first=text.split(/\r?\n/)[0];const sep=[";","\t",","].sort((a,b)=>first.split(b).length-first.split(a).length)[0];
+  const rows=[];let row=[],f="",q=false;
+  for(let i=0;i<text.length;i++){const ch=text[i];
+    if(q){if(ch==='"'){if(text[i+1]==='"'){f+='"';i++}else q=false}else f+=ch}
+    else if(ch==='"')q=true;else if(ch===sep){row.push(f);f=""}else if(ch==="\n"){row.push(f);rows.push(row);row=[];f=""}else if(ch!=="\r")f+=ch}
+  if(f||row.length){row.push(f);rows.push(row)}return rows}
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("не загрузилась библиотека Excel"));document.head.appendChild(s)})}
+function parseKml(text){const doc=new DOMParser().parseFromString(text,"application/xml");let n=0;
+  for(const pm of doc.getElementsByTagName("Placemark")){
+    const name=(pm.getElementsByTagName("name")[0]?.textContent||"").trim();
+    const desc=(pm.getElementsByTagName("description")[0]?.textContent||"").replace(/<[^>]+>/g," ").trim();
+    const ext={};for(const d of pm.getElementsByTagName("Data"))ext[norm(d.getAttribute("name"))]=d.getElementsByTagName("value")[0]?.textContent||"";
+    for(const d of pm.getElementsByTagName("SimpleData"))ext[norm(d.getAttribute("name"))]=d.textContent||"";
+    const folder=pm.parentNode?.getElementsByTagName?.("name")[0]?.textContent||"";
+    const pt=pm.getElementsByTagName("Point")[0];
+    if(pt){const [lon,lat]=(pt.getElementsByTagName("coordinates")[0]?.textContent||"").trim().split(",").map(Number);
+      if(!isFinite(lat)||!isFinite(lon))continue;
+      const g=k=>{for(const a of ALIAS[k])if(ext[a])return ext[a];return""};
+      const isTp=isTpType(g("kind"))||(!g("kind")&&(isTpType(name)||isTpType(folder)));
+      S.pts.push({id:newId("f"),kind:isTp?"tp":"pole",lamp:isTp?undefined:true,name:g("name")||name,lat,lon,tp:g("tp"),note:g("note")||desc.slice(0,200),src:"файл"});n++;continue}
+    const ls=pm.getElementsByTagName("LineString")[0];
+    if(ls){const co=(ls.getElementsByTagName("coordinates")[0]?.textContent||"").trim().split(/\s+/).map(s=>s.split(",").map(Number)).filter(a=>isFinite(a[1])).map(a=>[a[1],a[0]]);
+      if(co.length>1){S.lines.push({osm:newId("f"),coords:co,minor:true});n++}}}
+  render();fit();msg("Загружено объектов из KML: "+n)}
+function parseGeo(obj){const fs=obj.type==="FeatureCollection"?obj.features:[obj];let n=0;
+  for(const f of fs){const g=f.geometry,p=f.properties||{};if(!g)continue;
+    const keys=Object.keys(p),pk=pickCols(keys),get=k=>pk[k]!=null?String(p[keys[pk[k]]]??""):"";
+    if(g.type==="Point"){const [lon,lat]=g.coordinates;const kind=p.kind||get("kind");const tp=kind==="tp"||isTpType(kind)||(!kind&&isTpType(get("name")));
+      S.pts.push({id:newId("f"),kind:tp?"tp":"pole",lamp:tp?undefined:(p.lamp===false?false:true),name:get("name"),lat,lon,tp:get("tp"),note:get("note"),src:"файл"});n++}
+    else if(g.type==="LineString"&&p.role!=="link"){S.lines.push({osm:newId("f"),coords:g.coordinates.map(c=>[c[1],c[0]]),minor:true});n++}}
+  render();fit();msg("Загружено объектов из GeoJSON: "+n)}
+$("fIn").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;e.target.value="";
+  const ext=f.name.split(".").pop().toLowerCase(), base=f.name.replace(/\.[^.]+$/,"");
+  try{
+    if(ext==="xlsx"||ext==="xls"){msg("Читаю Excel…");if(!window.XLSX)await loadScript("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js");
+      const wb=XLSX.read(await f.arrayBuffer(),{type:"array"}),tot={tp:0,poles:0,bad:0};let ok=false;
+      for(const sn of wb.SheetNames){const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:true,defval:""});
+        const r=importRows(rows,base+(wb.SheetNames.length>1?" / "+sn:""));if(r){ok=true;tot.tp+=r.tp;tot.poles+=r.poles;tot.bad+=r.bad}}
+      if(!ok)return msg("Не нашла столбцы широты и долготы. Назовите их «Широта» и «Долгота» (см. шаблон CSV).",true);
+      render();fit();msg(`${base}: ТП ${tot.tp}, опор ${tot.poles}`+(tot.bad?`, пропущено строк без координат: ${tot.bad}`:""))}
+    else if(ext==="kml")parseKml(await f.text());
+    else if(ext==="geojson"||ext==="json")parseGeo(JSON.parse(await f.text()));
+    else{let t=await f.text();if(t.includes("�"))t=new TextDecoder("windows-1251").decode(await f.arrayBuffer());addRows(parseCsv(t),base)}
+  }catch(err){msg("Не удалось прочитать файл: "+err.message,true)}});
+
+function fit(){const p=S.pts.map(p=>[p.lat,p.lon]);if(p.length)map.fitBounds(L.latLngBounds(p).pad(.1),{maxZoom:17})}
+
+/* ---------- экспорт ---------- */
+function download(name,text,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
+const tpName=id=>{const t=S.pts.find(x=>x.id===id);return t?tpLabel(t):""};
+function rowsOut(){return S.pts.map(p=>({тип:p.kind==="tp"?"ТП":(p.lamp===false?"Опора ЛЭП":"Опора освещения"),номер:p.kind==="tp"?tpLabel(p):(p.name||""),тип_опоры:p.ptype||"",
+  широта:p.lat,долгота:p.lon,тп:p.kind==="pole"?tpName(p.link):"",привязка:p.kind!=="pole"?"":p.link?(p.linkAuto?"по близости":"по данным"):"нет",
+  расстояние_до_тп_м:p.linkDist!=null?Math.round(p.linkDist):"",источник:p.src,примечание:p.note||""}))}
+$("bCsv").onclick=()=>{const r=rowsOut();if(!r.length)return msg("Нечего выгружать.",true);const h=Object.keys(r[0]);
+  const cell=v=>{const s=typeof v==="number"?String(v).replace(".",","):String(v);return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
+  download("sortavala_opory_tp.csv","﻿"+[h.join(";"),...r.map(o=>h.map(k=>cell(o[k])).join(";"))].join("\r\n"),"text/csv;charset=utf-8")};
+$("bGeo").onclick=()=>{const fs=rowsOut().map((o,i)=>({type:"Feature",geometry:{type:"Point",coordinates:[S.pts[i].lon,S.pts[i].lat]},properties:{...o,kind:S.pts[i].kind,lamp:S.pts[i].lamp}}));
+  for(const p of S.pts){if(p.kind!=="pole"||!p.link)continue;const t=S.pts.find(x=>x.id===p.link);fs.push({type:"Feature",geometry:{type:"LineString",coordinates:[[p.lon,p.lat],[t.lon,t.lat]]},properties:{role:"link",опора:p.name||"",тп:tpLabel(t),привязка:p.linkAuto?"по близости":"по данным"}})}
+  for(const l of S.lines)fs.push({type:"Feature",geometry:{type:"LineString",coordinates:l.coords.map(c=>[c[1],c[0]])},properties:{role:"power_line"}});
+  download("sortavala_opory_tp.geojson",JSON.stringify({type:"FeatureCollection",features:fs}),"application/geo+json")};
+$("bKml").onclick=()=>{const x=s=>esc(s);const r=rowsOut();
+  const pm=r.map((o,i)=>`<Placemark><name>${x(o.номер||o.тип)}</name><styleUrl>#${S.pts[i].kind}</styleUrl><ExtendedData>${Object.entries(o).map(([k,v])=>`<Data name="${x(k)}"><value>${x(v)}</value></Data>`).join("")}</ExtendedData><Point><coordinates>${S.pts[i].lon},${S.pts[i].lat}</coordinates></Point></Placemark>`).join("\n");
+  download("sortavala_opory_tp.kml",`<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Освещение Сортавалы, этап 2</name><Style id="tp"><IconStyle><color>ff1e26b3</color></IconStyle></Style><Style id="pole"><IconStyle><scale>0.6</scale></IconStyle></Style>\n${pm}\n</Document></kml>`,"application/vnd.google-earth.kml+xml")};
+$("bTpl").onclick=()=>download("shablon_opory_tp.csv","﻿"+["Тип;Номер;Широта;Долгота;ТП;Примечание","ТП;ТП-12;61,70412;30,68861;;ул. Карельская","Опора освещения;12-01;61,70450;30,68920;ТП-12;","Опора освещения;12-02;61,70490;30,68990;ТП-12;","КТП;КТП-5;61,70610;30,69540;;","Опора освещения;5-01;61,70580;30,69480;КТП-5;"].join("\r\n"),"text/csv;charset=utf-8");
+$("bClear").onclick=()=>{if($("bClear").dataset.armed){S.pts=[];S.lines=[];selTp=null;delete $("bClear").dataset.armed;$("bClear").textContent="Очистить карту";render();msg("Карта очищена.")}
+  else{$("bClear").dataset.armed=1;$("bClear").textContent="Точно очистить? Нажмите ещё раз";setTimeout(()=>{delete $("bClear").dataset.armed;$("bClear").textContent="Очистить карту"},4000)}};
+
+/* ---------- правка ---------- */
+function setMode(m){mode=mode===m?null:m;$("bAddPole").classList.toggle("on",mode==="pole");$("bAddTp").classList.toggle("on",mode==="tp");
+  map.getContainer().style.cursor=mode?"crosshair":"";if(mode)msg(mode==="tp"?"Щёлкните по карте, чтобы поставить ТП.":"Щёлкните по карте, чтобы поставить опору.")}
+$("bAddPole").onclick=()=>setMode("pole");$("bAddTp").onclick=()=>setMode("tp");
+map.on("click",e=>{if(!mode)return;const p={id:newId("m"),kind:mode,lat:+e.latlng.lat.toFixed(7),lon:+e.latlng.lng.toFixed(7),name:"",tp:"",note:"",src:"вручную"};
+  if(mode==="pole")p.lamp=true;S.pts.push(p);render()});
+
+for(const id of ["cPoles","cOtherPoles","cTp","sLinks","cPower","cAuto","nRad"])$(id).addEventListener("change",render);
+$("bOsm").onclick=loadOsm;
+
+/* Данные, встроенные в файл карты (для работы с файлом на своём компьютере). */
+let EMB={ver:"",files:[]};try{EMB=JSON.parse($("emb").textContent)}catch(e){}
+function loadEmbedded(){S.pts=[];S.lines=[];seq=1;
+  for(const f of EMB.files)importRows(f.rows,f.name);S.ver=EMB.ver}
+$("bReset").onclick=()=>{loadEmbedded();selTp=null;render();fit();msg("Карта возвращена к исходным данным.")};
+$("bReset").hidden=!EMB.files.length;
+
+/* ---------- карта на сайте: все смотрят, редакторы правят ----------
+   Данные лежат в файле data/map.json репозитория GitHub, сайт — GitHub Pages.
+   Зрители читают data/map.json с сайта. Редактор входит своим ключом GitHub (право записи в репозиторий
+   выдаёт владелец), правит карту и сохраняет: каждое сохранение — коммит, история правок видна в GitHub. */
+const REPO=(document.querySelector('meta[name="karta-repo"]')?.content||"").trim();
+const SITE=!!REPO&&/^https?:$/.test(location.protocol);
+const DATA_PATH="data/map.json", TOKEN_KEY="karta-sortavala-token", API="https://api.github.com";
+const ED={role:"local",token:"",login:"",sha:"",base:new Map(),baseLines:"[]",updated:"",by:""};
+const clean=p=>{const {link,linkAuto,linkDist,...r}=p;return r};
+function snapshot(){ED.base=new Map(S.pts.map(p=>[p.id,JSON.stringify(clean(p))]));ED.baseLines=JSON.stringify(S.lines)}
+function diff(){const cur=new Map(S.pts.map(p=>[p.id,JSON.stringify(clean(p))])),changed=[],deleted=[];
+  for(const [id,j] of cur)if(ED.base.get(id)!==j)changed.push(id);
+  for(const id of ED.base.keys())if(!cur.has(id))deleted.push(id);
+  return {changed,deleted,lines:JSON.stringify(S.lines)!==ED.baseLines,n:changed.length+deleted.length}}
+const fmtTime=iso=>{try{return new Date(iso).toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"})}catch(e){return iso}};
+function setRole(r){ED.role=r;document.body.dataset.role=r;if(r!=="edit"&&mode)setMode(mode);accInfo()}
+function accInfo(){if(!SITE)return;const upd=ED.updated?`Данные от ${fmtTime(ED.updated)}${ED.by?" ("+esc(ED.by)+")":""}.`:"";
+  $("accInfo").innerHTML=ED.role==="edit"
+    ?`<span class="role">Вы редактор: ${esc(ED.login)}</span><div class="note">${upd} Правки видны всем после кнопки «Сохранить на сайт».</div>`
+    :`<span class="role">Просмотр</span><div class="note">${upd} Карта обновляется сама каждые 5 минут.</div>`}
+function updSave(){if(ED.role!=="edit")return;const d=diff(),n=d.n+(d.lines?1:0);
+  $("bSave").disabled=!n;$("bSave").textContent=n?`Сохранить на сайт (${n})`:"Изменений нет"}
+const _render=render;render=function(){_render();updSave()};
+
+const b64enc=t=>{const b=new TextEncoder().encode(t);let s="";for(let i=0;i<b.length;i+=0x8000)s+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));return btoa(s)};
+const b64dec=s=>new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g,"")),c=>c.charCodeAt(0)));
+async function gh(url,opt={}){return fetch(API+url,{cache:"no-store",...opt,headers:{Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28",Authorization:"Bearer "+ED.token,...(opt.headers||{})}})}
+function applyDoc(doc){S.pts=doc.pts||[];S.lines=doc.lines||[];ED.updated=doc.updated||"";ED.by=doc.by||"";selTp=null;render();snapshot();accInfo()}
+async function loadPublic(){const r=await fetch(DATA_PATH+"?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw new Error("нет файла данных ("+r.status+")");return r.json()}
+async function fetchRemote(){ // свежая версия прямо из репозитория, минуя кэш сайта
+  const m=await gh(`/repos/${REPO}/contents/${DATA_PATH}`);
+  if(m.status===404)return {sha:"",doc:null};
+  if(!m.ok)throw new Error("GitHub ответил "+m.status);
+  const meta=await m.json();let text;
+  if(meta.content&&meta.encoding==="base64")text=b64dec(meta.content);
+  else text=await (await gh(`/repos/${REPO}/git/blobs/${meta.sha}`,{headers:{Accept:"application/vnd.github.raw+json"}})).text();
+  return {sha:meta.sha,doc:JSON.parse(text)}}
+function docText(doc){ // по одной точке в строке, чтобы в истории GitHub было видно, что изменилось
+  return `{"updated":${JSON.stringify(doc.updated)},"by":${JSON.stringify(doc.by)},\n"pts":[\n${doc.pts.map(p=>JSON.stringify(p)).join(",\n")}\n],\n"lines":[\n${doc.lines.map(l=>JSON.stringify(l)).join(",\n")}\n]}\n`}
+async function login(token){
+  ED.token=token;
+  const u=await gh("/user");if(u.status===401)throw new Error("ключ не подходит или устарел");if(!u.ok)throw new Error("GitHub ответил "+u.status);
+  const r=await gh(`/repos/${REPO}`);if(!r.ok)throw new Error("нет доступа к хранилищу карты");
+  if(!(await r.json()).permissions?.push)throw new Error("у этой учётной записи нет права правки. Попросите владельца карты добавить вас в редакторы");
+  ED.login=(await u.json()).login;try{localStorage.setItem(TOKEN_KEY,token)}catch(e){}
+  setRole("edit");await reloadEditor();
+}
+async function reloadEditor(){const rem=await fetchRemote();ED.sha=rem.sha;
+  if(rem.doc)applyDoc(rem.doc);else{snapshot();ED.base=new Map();accInfo()} // файла ещё нет: всё текущее будет записано при сохранении
+  updSave()}
+function logout(){ED.token="";ED.login="";ED.sha="";try{localStorage.removeItem(TOKEN_KEY)}catch(e){}setRole("view");refreshView(true)}
+async function saveRemote(){
+  const d=diff();if(!d.n&&!d.lines){msg("Изменений нет.");return}
+  $("bSave").disabled=true;$("bSave").textContent="Сохраняю…";
+  const mine=new Map(S.pts.map(p=>[p.id,clean(p)])),myLines=S.lines;
+  try{for(let attempt=0;;attempt++){
+    const doc={updated:new Date().toISOString(),by:ED.login,pts:S.pts.map(clean),lines:S.lines};
+    const r=await gh(`/repos/${REPO}/contents/${DATA_PATH}`,{method:"PUT",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({message:`Карта: изменено ${d.changed.length}, удалено ${d.deleted.length}${d.lines?", линии ЛЭП":""} (${ED.login})`,content:b64enc(docText(doc)),...(ED.sha?{sha:ED.sha}:{})})});
+    if(r.ok){ED.sha=(await r.json()).content.sha;ED.updated=doc.updated;ED.by=doc.by;snapshot();render();accInfo();
+      msg(`Сохранено. Зрители увидят изменения в течение нескольких минут.${attempt?" Правки другого редактора, сохранённые раньше, тоже учтены.":""}`);return}
+    if((r.status===409||r.status===422)&&attempt<2){
+      // Кто-то сохранил раньше: берём его версию и накладываем поверх только свои изменения
+      const rem=await fetchRemote();ED.sha=rem.sha;
+      const pts=new Map(((rem.doc&&rem.doc.pts)||[]).map(p=>[p.id,p]));
+      for(const id of d.changed)pts.set(id,mine.get(id));for(const id of d.deleted)pts.delete(id);
+      S.pts=[...pts.values()];
+      if(d.lines){const keys=new Set(myLines.map(l=>l.osm));S.lines=[...myLines,...((rem.doc&&rem.doc.lines)||[]).filter(l=>!keys.has(l.osm))]}
+      else S.lines=(rem.doc&&rem.doc.lines)||[];
+      continue}
+    throw new Error("GitHub ответил "+r.status)}}
+  catch(e){msg("Не удалось сохранить: "+e.message+". Правки остались на этой странице, попробуйте ещё раз.",true);updSave()}
+}
+async function refreshView(first){
+  try{applyDoc(await loadPublic());if(first)fit();if(first)msg(`На карте ${S.pts.filter(p=>p.kind==="pole").length} опор и ${S.pts.filter(p=>p.kind==="tp").length} ТП.`)}
+  catch(e){if(first){loadEmbedded();render();fit();msg("Не удалось загрузить актуальные данные, показаны данные из файла карты.",true)}}
+}
+$("bLogin").onclick=()=>{$("fLogin").hidden=false;$("bLogin").hidden=true;$("tok").focus()};
+$("bCancel").onclick=()=>{$("fLogin").hidden=true;$("bLogin").hidden=false};
+$("fLogin").addEventListener("submit",async e=>{e.preventDefault();const t=$("tok").value.trim();if(!t)return;
+  msg("Проверяю доступ…");try{await login(t);$("tok").value="";$("fLogin").hidden=true;$("bLogin").hidden=false;msg("Вы вошли как редактор. Правьте карту и нажмите «Сохранить на сайт».")}
+  catch(err){ED.token="";msg("Войти не удалось: "+err.message+".",true)}});
+$("bSave").onclick=saveRemote;
+$("bReload").onclick=async()=>{if(diff().n&&$("bReload").dataset.armed!=="1"){$("bReload").dataset.armed="1";$("bReload").textContent="Есть несохранённые правки. Сбросить их?";
+    setTimeout(()=>{$("bReload").dataset.armed="";$("bReload").textContent="Обновить"},4000);return}
+  $("bReload").dataset.armed="";$("bReload").textContent="Обновить";
+  try{await reloadEditor();msg("Загружена последняя сохранённая версия.")}catch(e){msg("Не удалось обновить: "+e.message,true)}};
+$("bLogout").onclick=()=>{if(diff().n&&!confirmLeave())return;logout();msg("Вы вышли. Карта открыта для просмотра.")};
+function confirmLeave(){if($("bLogout").dataset.armed==="1")return true;$("bLogout").dataset.armed="1";$("bLogout").textContent="Не сохранено! Выйти всё равно?";
+  setTimeout(()=>{$("bLogout").dataset.armed="";$("bLogout").textContent="Выйти"},4000);return false}
+window.addEventListener("beforeunload",e=>{if(ED.role==="edit"&&(diff().n||diff().lines)){e.preventDefault();e.returnValue=""}});
+setInterval(()=>{if(ED.role==="view"&&document.visibilityState==="visible")refreshView(false)},5*60*1000);
+document.addEventListener("visibilitychange",()=>{if(ED.role==="view"&&document.visibilityState==="visible")refreshView(false)});
+
+(async()=>{
+  if(SITE){setRole("view");await refreshView(true);
+    let t="";try{t=localStorage.getItem(TOKEN_KEY)||""}catch(e){}
+    if(t){try{await login(t);msg("Вы вошли как редактор: "+ED.login+".")}catch(e){ED.token="";setRole("view");msg("Войти как редактор не удалось: "+e.message+".",true)}}
+    return}
+  setRole("local");load();
+  if(EMB.files.length&&S.ver!==EMB.ver){loadEmbedded();render();fit();
+    msg(`На карте данные из файлов: ${EMB.files.map(f=>f.name).join("; ")}.`)}
+  else{render();if(S.pts.length){fit();msg(EMB.files.length?`На карте данные из файлов: ${EMB.files.map(f=>f.name).join("; ")}. Правки, сделанные в этом браузере, сохранены.`:"Восстановлены правки, сделанные в этом браузере.")}
+    else msg("Карта пуста. Загрузите данные OSM или свой файл.")}
+})();
+</script>
+</body>
+</html>
