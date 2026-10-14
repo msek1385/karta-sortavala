@@ -54,6 +54,18 @@ input[type=number]{width:70px;font:inherit;padding:3px 5px;border:1px solid var(
 .tp-icon{background:var(--panel);border:2px solid #b3261e;border-radius:3px;font:600 10.5px/1 var(--sans);color:#1d2524;
   padding:3px 4px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.35);transform:translate(-50%,-50%);display:inline-block}
 .tp-wrap{width:0!important;height:0!important}
+.pole-wrap{background:none;border:none}
+.pole-ic{display:block;width:12px;height:12px;border-radius:50%;border:2px solid #00456b;background:#006BA6;box-sizing:border-box;cursor:move}
+.pole-ic.free{background:#fff;border-color:#006BA6}
+.pole-ic.other{width:8px;height:8px;margin:2px;background:#fff;border-color:#8a8f99}
+.pole-ic.dim{opacity:.3}
+.pole-ic.pick{box-shadow:0 0 0 4px #f5a623}
+.vh{display:block;width:10px;height:10px;background:#fff;border:2px solid #006BA6;box-sizing:border-box;cursor:move}
+.mh{display:block;width:12px;height:12px;border-radius:50%;background:#006BA6;opacity:.7;border:1px solid #fff;box-sizing:border-box;cursor:copy}
+#edgeBar{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);z-index:800;width:min(440px,calc(100% - 32px));box-sizing:border-box;
+  background:var(--panel);color:var(--fg);border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.3);padding:10px 12px;font:13px/1.45 var(--sans)}
+#edgeBar[hidden]{display:none}
+.leaflet-popup-content textarea{width:100%;font:inherit;padding:4px;margin:4px 0;min-height:52px;resize:vertical}
 .leaflet-popup-content{font:13px/1.45 var(--sans);min-width:220px}
 .leaflet-popup-content select,.leaflet-popup-content input[type=text]{width:100%;font:inherit;padding:4px;margin:4px 0}
 .pp-h{font-weight:600;margin-bottom:4px}
@@ -133,7 +145,7 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
     <label class="chk"><input type="checkbox" id="cPower" checked> Линии электропередачи из OSM</label>
     <label class="chk"><input type="checkbox" id="cAuto" checked> Привязывать без данных к ближайшей ТП,
       не дальше <input type="number" id="nRad" value="600" min="50" step="50"> м</label>
-    <div class="note">Условная трасса соединяет опоры одной ТП по кратчайшим расстояниям: это наглядная схема, а не проект сети. Привязка по близости показана пунктиром. Если в файле одна ТП и нет столбца «ТП», все опоры файла привязываются к этой ТП.</div>
+    <div class="note">Трасса сначала строится автоматически по ближайшим опорам одной ТП; редактор может провести линии и изогнуть их вручную. Привязка по близости показана пунктиром. Если в файле одна ТП и нет столбца «ТП», все опоры файла привязываются к этой ТП.</div>
   </section>
 
   <section class="edit-only">
@@ -141,8 +153,9 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
     <div class="row">
       <button id="bAddPole">+ Опора</button>
       <button id="bAddTp">+ ТП/КТП</button>
+      <button id="bLink">Провести линию</button>
     </div>
-    <div class="note">Включите режим и щёлкните по карте. Чтобы привязать опору к ТП, щёлкните по опоре и выберите ТП в списке.</div>
+    <div class="note">«+ Опора» и «+ ТП/КТП»: включите и щёлкните по карте. Опоры и ТП можно перетаскивать мышью. «Провести линию»: щёлкните опору, затем опору или ТП, от которой к ней идёт линия. Щелчок по линии трассы выделяет её: потяните кружок на линии, чтобы изогнуть её, квадратик (изгиб) можно двигать, двойной щелчок по нему убирает изгиб.</div>
   </section>
 
   <section>
@@ -195,7 +208,7 @@ const sat=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Worl
 const BASES={"Яндекс: схема":yMap,"Яндекс: спутник":ySat,"Яндекс: гибрид":yHyb,"OpenStreetMap":osm,"Спутник Esri":sat};
 let baseName="Яндекс: схема";try{const b=localStorage.getItem(BASE_KEY);if(BASES[b])baseName=b}catch(e){}
 const crsOf=l=>l.options.crs||L.CRS.EPSG3857;
-const map=L.map("map",{preferCanvas:true,crs:crsOf(BASES[baseName]),layers:[BASES[baseName]]}).setView(CENTER,14);
+const map=L.map("map",{preferCanvas:true,renderer:L.canvas({tolerance:6}),crs:crsOf(BASES[baseName]),layers:[BASES[baseName]]}).setView(CENTER,14);
 L.control.layers(BASES,null,{position:"topleft"}).addTo(map);
 map.on("baselayerchange",e=>{
   if(!e.auto)try{localStorage.setItem(BASE_KEY,e.name)}catch(err){}
@@ -209,7 +222,7 @@ for(const l of [yMap,ySat,...yHyb.getLayers()]){l.on("tileload",()=>yaOk++);l.on
     osm.addTo(map);map.fire("baselayerchange",{layer:osm,name:"OpenStreetMap",auto:true});yaErr=-1e9;
     msg("Яндекс.Карты не загрузились, включена подложка OpenStreetMap. Переключить обратно можно кнопкой слоёв слева вверху.",true)}})}
 L.control.scale({imperial:false}).addTo(map);
-const gPower=L.layerGroup().addTo(map), gLinks=L.layerGroup().addTo(map), gPoles=L.layerGroup().addTo(map), gTp=L.layerGroup().addTo(map);
+const gPower=L.layerGroup().addTo(map), gLinks=L.layerGroup().addTo(map), gPoles=L.layerGroup().addTo(map), gTp=L.layerGroup().addTo(map), gHandles=L.layerGroup().addTo(map);
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -242,28 +255,87 @@ function resolve(){
       if(best&&bd<=rad){p.link=best.id;p.linkAuto=true;p.linkDist=bd}}}
 }
 
-/* условная трасса: минимальное остовное дерево (алгоритм Прима) от ТП по её опорам */
-function tree(t,poles){
-  const nodes=[t,...poles], n=nodes.length, inT=new Array(n).fill(false), best=new Array(n).fill(Infinity), par=new Array(n).fill(-1), edges=[];
+/* Трасса по опорам. У опоры может быть задано, откуда к ней идёт линия (p.from — id опоры или ТП, "none" — линии нет),
+   и изгибы линии (p.via — точки [lat,lon] от предыдущей опоры к этой). Где p.from не задан, линия строится
+   автоматически: минимальное остовное дерево (алгоритм Прима) от ТП по её опорам. */
+function treeParents(t,poles){
+  const nodes=[t,...poles], n=nodes.length, inT=new Array(n).fill(false), best=new Array(n).fill(Infinity), par=new Array(n).fill(-1), res=new Map();
   best[0]=0;
   for(let k=0;k<n;k++){let u=-1;for(let i=0;i<n;i++)if(!inT[i]&&(u<0||best[i]<best[u]))u=i;
-    inT[u]=true;if(par[u]>=0)edges.push([nodes[par[u]],nodes[u]]);
+    inT[u]=true;if(par[u]>=0)res.set(nodes[u].id,nodes[par[u]].id);
     for(let v=0;v<n;v++)if(!inT[v]){const d=dist(nodes[u],nodes[v]);if(d<best[v]){best[v]=d;par[v]=u}}}
-  return edges;
+  return res;
+}
+function traceEdges(){
+  const byId=new Map(S.pts.map(p=>[p.id,p])), showOther=$("cOtherPoles").checked, auto=new Map(), out=[];
+  const vis=p=>p.kind==="pole"&&(p.lamp!==false||showOther);
+  for(const t of S.pts)if(t.kind==="tp")for(const [c,par] of treeParents(t,S.pts.filter(p=>vis(p)&&p.link===t.id)))auto.set(c,par);
+  for(const p of S.pts){if(!vis(p)||p.from==="none")continue;
+    let par=p.from&&byId.get(p.from), isAuto=false;
+    if(!par){par=byId.get(auto.get(p.id));isAuto=true}
+    if(!par||par===p)continue;
+    out.push({child:p,parent:par,auto:isAuto,coords:[[par.lat,par.lon],...(isAuto?[]:(p.via||[])),[p.lat,p.lon]]})}
+  return out;
+}
+const canEdit=()=>ED.role!=="view";
+let selEdge=null, linkChild=null;
+function openPopup(latlng,content,opt){L.popup({maxWidth:320,minWidth:240,...opt}).setLatLng(latlng).setContent(content).openOn(map)}
+function fixEdge(e){if(e.auto){e.child.from=e.parent.id;e.child.via=[]}if(!e.child.via)e.child.via=[]}
+function edgeOf(id){return traceEdges().find(e=>e.child.id===id)}
+function selectEdge(e){map.closePopup();selEdge=e.child.id;render()}
+function clearEdge(){if(selEdge){selEdge=null;render()}}
+/* Панель выбранной линии внизу карты: не закрывает саму линию и её изгибы, как закрывала бы карточка. */
+const edgeBar=L.DomUtil.create("div","",map.getContainer());edgeBar.id="edgeBar";edgeBar.hidden=true;
+L.DomEvent.disableClickPropagation(edgeBar);L.DomEvent.disableScrollPropagation(edgeBar);
+function showEdgeBar(){
+  const e=canEdit()&&selEdge&&edgeOf(selEdge);
+  if(!e){edgeBar.hidden=true;return}
+  edgeBar.hidden=false;
+  edgeBar.innerHTML=`<div><b>Линия трассы</b> к опоре${e.child.name?" "+esc(e.child.name):""}: ${e.auto?"построена автоматически":"проведена вручную"}.
+   Тяните кружки на линии, чтобы изогнуть её; двойной щелчок по квадратику убирает изгиб.</div>
+   <div class="pp-row"><button class="st">Выпрямить</button><button class="au">Авто</button><button class="rm">Удалить</button><button class="ok primary">Готово</button></div>`;
+  edgeBar.querySelector(".st").onclick=()=>{const c=e.child;if(e.auto)c.from=e.parent.id;c.via=[];render()};
+  edgeBar.querySelector(".au").title="Вернуть автоматическую линию по ближайшим опорам";
+  edgeBar.querySelector(".au").onclick=()=>{delete e.child.from;delete e.child.via;render()};
+  edgeBar.querySelector(".rm").title="Убрать линию к этой опоре";
+  edgeBar.querySelector(".rm").onclick=()=>{e.child.from="none";delete e.child.via;selEdge=null;render()};
+  edgeBar.querySelector(".ok").onclick=clearEdge;
+}
+document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&selEdge)clearEdge()});
+function drawHandles(){
+  const e=selEdge&&edgeOf(selEdge);if(!e)return;
+  const box=(cls,sz=10)=>L.divIcon({className:"pole-wrap",html:`<span class="${cls}"></span>`,iconSize:[sz,sz]});
+  (e.child.via||[]).forEach((v,i)=>{if(e.auto)return;
+    const h=L.marker(v,{icon:box("vh"),draggable:true,zIndexOffset:2000,title:"Изгиб линии"}).addTo(gHandles);
+    h.on("dragend",()=>{const ll=h.getLatLng();e.child.via[i]=[+ll.lat.toFixed(7),+ll.lng.toFixed(7)];render()});
+    h.on("dblclick",ev=>{L.DomEvent.stop(ev);e.child.via.splice(i,1);render()})});
+  for(let i=0;i<e.coords.length-1;i++){const [a,b]=[e.coords[i],e.coords[i+1]];
+    const h=L.marker([(a[0]+b[0])/2,(a[1]+b[1])/2],{icon:box("mh",12),draggable:true,zIndexOffset:1900,title:"Потяните, чтобы изогнуть линию"}).addTo(gHandles);
+    h.on("dragend",()=>{const ll=h.getLatLng();fixEdge(e);e.child.via.splice(i,0,[+ll.lat.toFixed(7),+ll.lng.toFixed(7)]);render()})}
+}
+function linkClick(p){
+  if(!linkChild){if(p.kind!=="pole")return msg("Сначала щёлкните опору, к которой идёт линия.",true);
+    linkChild=p.id;render();return msg("Теперь щёлкните опору или ТП, от которой идёт линия к выбранной опоре.")}
+  const c=S.pts.find(x=>x.id===linkChild);linkChild=null;
+  if(!c||c===p){render();return msg("Выбор сброшен. Щёлкните опору, к которой идёт линия.")}
+  c.from=p.id;c.via=[];
+  const src=p.kind==="tp"?p:S.pts.find(x=>x.id===p.link);if(src)c.tp=tpLabel(src); // линия от опоры другой ТП меняет источник питания
+  render();msg("Линия проведена. Щёлкните следующую опору или выключите «Провести линию».");
 }
 
 /* ---------- отрисовка ---------- */
 function render(){
   resolve();
-  gPower.clearLayers();gLinks.clearLayers();gPoles.clearLayers();gTp.clearLayers();
-  const tps=new Map(S.pts.filter(p=>p.kind==="tp").map(t=>[t.id,t]));
+  gPower.clearLayers();gLinks.clearLayers();gPoles.clearLayers();gTp.clearLayers();gHandles.clearLayers();
+  const tps=new Map(S.pts.filter(p=>p.kind==="tp").map(t=>[t.id,t])), edit=canEdit();
   if($("cPower").checked)for(const l of S.lines)
     L.polyline(l.coords,{color:"#8a8f99",weight:l.minor?1.5:2.5,opacity:.85,interactive:false}).addTo(gPower);
   const showOther=$("cOtherPoles").checked, ls=$("sLinks").value;
-  if(ls==="tree"&&$("cPoles").checked)for(const t of tps.values()){
-    const dim=selTp&&t.id!==selTp, col=POLE_COLOR;
-    for(const [a,b] of tree(t,S.pts.filter(p=>p.kind==="pole"&&p.link===t.id&&(p.lamp!==false||showOther))))
-      L.polyline([[a.lat,a.lon],[b.lat,b.lon]],{color:col,weight:2,opacity:dim?.15:.85,dashArray:(b.linkAuto||a.linkAuto)?"4 4":null,interactive:false}).addTo(gLinks);
+  if(ls==="tree"&&$("cPoles").checked)for(const e of traceEdges()){
+    const dim=selTp&&e.child.link!==selTp, sel=selEdge===e.child.id;
+    const line=L.polyline(e.coords,{color:POLE_COLOR,weight:sel?4:2,opacity:dim?.15:.85,dashArray:e.child.linkAuto?"4 4":null,interactive:edit});
+    if(edit)line.on("click",ev=>{L.DomEvent.stop(ev);if(mode)return;selectEdge(e)});
+    line.addTo(gLinks);
   }
   for(const p of S.pts){
     if(p.kind!=="pole")continue;
@@ -272,16 +344,26 @@ function render(){
     const t=p.link?tps.get(p.link):null, col=POLE_COLOR;
     const dim=selTp&&p.link!==selTp;
     if(t&&ls==="rays")L.polyline([[p.lat,p.lon],[t.lat,t.lon]],{color:col,weight:1.6,opacity:dim?.15:.8,dashArray:p.linkAuto?"4 4":null,interactive:false}).addTo(gLinks);
-    const m=L.circleMarker([p.lat,p.lon],{radius:p.lamp===false?3.5:5,color:p.lamp===false?"#8a8f99":(t?"#00456b":POLE_COLOR),weight:t?1.2:2,
+    let m;
+    if(edit){ // в режиме правки опоры — перетаскиваемые маркеры
+      const cls="pole-ic"+(p.lamp===false?" other":(!t?" free":""))+(dim?" dim":"")+(linkChild===p.id?" pick":"");
+      m=L.marker([p.lat,p.lon],{icon:L.divIcon({className:"pole-wrap",html:`<span class="${cls}"></span>`,iconSize:[12,12]}),draggable:true,title:p.name||p.ptype||"Опора"});
+      m.on("dragend",()=>{const ll=m.getLatLng();p.lat=+ll.lat.toFixed(7);p.lon=+ll.lng.toFixed(7);render()});
+    }else m=L.circleMarker([p.lat,p.lon],{radius:p.lamp===false?3.5:5,color:p.lamp===false?"#8a8f99":(t?"#00456b":POLE_COLOR),weight:t?1.2:2,
       fillColor:p.lamp===false||!t?"#ffffff":col,fillOpacity:dim?.25:.95,opacity:dim?.3:1});
-    m.bindPopup(()=>polePopup(p));m.addTo(gPoles);
+    m.on("click",ev=>{L.DomEvent.stop(ev);if(mode==="link")return linkClick(p);if(mode)return;openPopup([p.lat,p.lon],polePopup(p))});
+    m.addTo(gPoles);
   }
   if($("cTp").checked)for(const t of tps.values()){
     const n=S.pts.filter(p=>p.link===t.id).length;
     const ic=L.divIcon({className:"tp-wrap",html:`<span class="tp-icon" style="border-color:${tpColor(t)}">${esc(tpLabel(t))}</span>`,iconSize:[0,0]});
-    const m=L.marker([t.lat,t.lon],{icon:ic,zIndexOffset:1000,title:tpLabel(t)+" · опор: "+n});
-    m.bindPopup(()=>tpPopup(t));m.addTo(gTp);
+    const m=L.marker([t.lat,t.lon],{icon:ic,zIndexOffset:1000,title:tpLabel(t)+" · опор: "+n,draggable:edit});
+    m.on("dragend",()=>{const ll=m.getLatLng();t.lat=+ll.lat.toFixed(7);t.lon=+ll.lng.toFixed(7);render()});
+    m.on("click",ev=>{L.DomEvent.stop(ev);if(mode==="link")return linkClick(t);if(mode)return;openPopup([t.lat,t.lon],tpPopup(t))});
+    m.addTo(gTp);
   }
+  if(edit)drawHandles();
+  showEdgeBar();
   stats();tpList();save();
 }
 function stats(){
@@ -308,25 +390,28 @@ function polePopup(p){
   const div=document.createElement("div");
   const cur=p.link&&!p.linkAuto?p.link:"";
   const types=[...POLE_TYPES];if(p.ptype&&!types.includes(p.ptype))types.push(p.ptype);
-  const tpTxt=p.link?(p.linkAuto?"ближайшая ТП ":"")+"<b>"+esc(tpLabel(S.pts.find(t=>t.id===p.link)))+"</b>":"не указана";
+  const tpTxt=p.link?(p.linkAuto?"ближайшая ТП ":"")+"<b>"+esc(tpLabel(S.pts.find(t=>t.id===p.link)))+"</b>":"не указан";
   div.innerHTML=`<div class="pp-h">${p.lamp===false?"Опора ЛЭП":"Опора освещения"}</div>
    <div class="view-only">Тип опоры: <b>${esc(p.ptype||"не указан")}</b></div>
-   <div class="view-only">Запитана от: ${tpTxt}</div>
+   <div class="view-only">Источник питания: ${tpTxt}</div>
    ${p.name?`<div class="view-only">Номер опоры: <b>${esc(p.name)}</b></div>`:""}
+   ${p.note?`<div class="view-only">Примечание: ${esc(p.note).replace(/\n/g,"<br>")}</div>`:""}
    <div class="edit-only">
      <label class="pp-k">Тип опоры<select class="pt"><option value="">— не указан —</option>${types.map(t=>`<option${t===p.ptype?" selected":""}>${esc(t)}</option>`).join("")}</select></label>
-     <label class="pp-k">Запитана от ТП<select class="sel"><option value="">${p.linkAuto?"— не указано (сейчас ближайшая: "+esc(tpLabel(S.pts.find(t=>t.id===p.link)))+") —":"— не указано —"}</option>${tps.map(t=>`<option value="${esc(t.id)}"${t.id===cur?" selected":""}>${esc(tpLabel(t))}</option>`).join("")}</select></label>
+     <label class="pp-k">Источник питания<select class="sel"><option value="">${p.linkAuto?"— не указан (сейчас ближайшая: "+esc(tpLabel(S.pts.find(t=>t.id===p.link)))+") —":"— не указан —"}</option>${tps.map(t=>`<option value="${esc(t.id)}"${t.id===cur?" selected":""}>${esc(tpLabel(t))}</option>`).join("")}</select></label>
      <label class="pp-k">Номер опоры<input type="text" class="nm" value="${esc(p.name||"")}"></label>
+     <label class="pp-k">Примечание<textarea class="nt">${esc(p.note||"")}</textarea></label>
    </div>
    <div class="pp-k">${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}</div>
-   ${p.note?`<div class="pp-k">${esc(p.note)}</div>`:""}
    <div class="edit-only">
      <label class="chk pp-k"><input type="checkbox" class="lamp"${p.lamp!==false?" checked":""}> Опора освещения</label>
-     <div class="pp-row"><button class="ok">Применить</button><button class="del">Удалить</button></div>
+     <div class="pp-row"><button class="ok">Применить</button><button class="ln">Провести линию</button><button class="del">Удалить</button></div>
    </div>`;
-  div.querySelector(".ok").onclick=()=>{p.name=div.querySelector(".nm").value.trim();p.ptype=div.querySelector(".pt").value;
+  div.querySelector(".ok").onclick=()=>{p.name=div.querySelector(".nm").value.trim();p.ptype=div.querySelector(".pt").value;p.note=div.querySelector(".nt").value.trim();
     const v=div.querySelector(".sel").value;p.tp=v?tpLabel(S.pts.find(t=>t.id===v)):"";
     p.lamp=div.querySelector(".lamp").checked;map.closePopup();render()};
+  div.querySelector(".ln").title="Провести линию к этой опоре: затем щёлкните опору или ТП, от которой она идёт";
+  div.querySelector(".ln").onclick=()=>{map.closePopup();if(mode!=="link")setMode("link");linkChild=p.id;render();msg("Щёлкните опору или ТП, от которой идёт линия к этой опоре.")};
   div.querySelector(".del").onclick=()=>{S.pts=S.pts.filter(x=>x!==p);map.closePopup();render()};
   return div;
 }
@@ -480,7 +565,7 @@ $("bCsv").onclick=()=>{const r=rowsOut();if(!r.length)return msg("Нечего �
   const cell=v=>{const s=typeof v==="number"?String(v).replace(".",","):String(v);return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
   download("sortavala_opory_tp.csv","﻿"+[h.join(";"),...r.map(o=>h.map(k=>cell(o[k])).join(";"))].join("\r\n"),"text/csv;charset=utf-8")};
 $("bGeo").onclick=()=>{const fs=rowsOut().map((o,i)=>({type:"Feature",geometry:{type:"Point",coordinates:[S.pts[i].lon,S.pts[i].lat]},properties:{...o,kind:S.pts[i].kind,lamp:S.pts[i].lamp}}));
-  for(const p of S.pts){if(p.kind!=="pole"||!p.link)continue;const t=S.pts.find(x=>x.id===p.link);fs.push({type:"Feature",geometry:{type:"LineString",coordinates:[[p.lon,p.lat],[t.lon,t.lat]]},properties:{role:"link",опора:p.name||"",тп:tpLabel(t),привязка:p.linkAuto?"по близости":"по данным"}})}
+  for(const e of traceEdges())fs.push({type:"Feature",geometry:{type:"LineString",coordinates:e.coords.map(c=>[c[1],c[0]])},properties:{role:"trace",опора:e.child.name||"",от:e.parent.kind==="tp"?tpLabel(e.parent):(e.parent.name||"опора"),линия:e.auto?"автоматически":"вручную"}});
   for(const l of S.lines)fs.push({type:"Feature",geometry:{type:"LineString",coordinates:l.coords.map(c=>[c[1],c[0]])},properties:{role:"power_line"}});
   download("sortavala_opory_tp.geojson",JSON.stringify({type:"FeatureCollection",features:fs}),"application/geo+json")};
 $("bKml").onclick=()=>{const x=s=>esc(s);const r=rowsOut();
@@ -491,10 +576,15 @@ $("bClear").onclick=()=>{if($("bClear").dataset.armed){S.pts=[];S.lines=[];selTp
   else{$("bClear").dataset.armed=1;$("bClear").textContent="Точно очистить? Нажмите ещё раз";setTimeout(()=>{delete $("bClear").dataset.armed;$("bClear").textContent="Очистить карту"},4000)}};
 
 /* ---------- правка ---------- */
-function setMode(m){mode=mode===m?null:m;$("bAddPole").classList.toggle("on",mode==="pole");$("bAddTp").classList.toggle("on",mode==="tp");
-  map.getContainer().style.cursor=mode?"crosshair":"";if(mode)msg(mode==="tp"?"Щёлкните по карте, чтобы поставить ТП.":"Щёлкните по карте, чтобы поставить опору.")}
-$("bAddPole").onclick=()=>setMode("pole");$("bAddTp").onclick=()=>setMode("tp");
-map.on("click",e=>{if(!mode)return;const p={id:newId("m"),kind:mode,lat:+e.latlng.lat.toFixed(7),lon:+e.latlng.lng.toFixed(7),name:"",tp:"",note:"",src:"вручную"};
+function setMode(m){mode=mode===m?null:m;linkChild=null;selEdge=null;
+  $("bAddPole").classList.toggle("on",mode==="pole");$("bAddTp").classList.toggle("on",mode==="tp");$("bLink").classList.toggle("on",mode==="link");
+  map.getContainer().style.cursor=mode&&mode!=="link"?"crosshair":"";
+  if(mode)msg({tp:"Щёлкните по карте, чтобы поставить ТП.",pole:"Щёлкните по карте, чтобы поставить опору.",link:"Щёлкните опору, к которой идёт линия, затем опору или ТП, от которой она идёт."}[mode]);
+  if(typeof ED!=="undefined")render()}
+$("bAddPole").onclick=()=>setMode("pole");$("bAddTp").onclick=()=>setMode("tp");$("bLink").onclick=()=>setMode("link");
+map.on("click",e=>{if(selEdge&&!mode)return clearEdge();
+  if(mode==="link"){if(linkChild){linkChild=null;render();msg("Выбор сброшен. Щёлкните опору, к которой идёт линия.")}return}
+  if(!mode)return;const p={id:newId("m"),kind:mode,lat:+e.latlng.lat.toFixed(7),lon:+e.latlng.lng.toFixed(7),name:"",tp:"",note:"",src:"вручную"};
   if(mode==="pole")p.lamp=true;S.pts.push(p);render()});
 
 for(const id of ["cPoles","cOtherPoles","cTp","sLinks","cPower","cAuto","nRad"])$(id).addEventListener("change",render);
