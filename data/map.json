@@ -1,4 +1,4 @@
-{"updated":"2026-10-14T18:43:44.717Z","by":"исходные файлы",
+{"updated":"2026-10-14T19:02:45.952Z","by":"msek1385",
 "pts":[
 {"id":"fmv8gkjkei6sw1","kind":"tp","name":"ТП №75","lat":61.7038816,"lon":30.6886654,"tp":"","note":"","src":"ул. Горького, ул. Садовая","row":2},
 {"id":"fmv8gkjkfwlugv","kind":"pole","name":"","lat":61.7039185,"lon":30.6888102,"tp":"ТП №75","note":"","src":"ул. Горького, ул. Садовая","row":3,"lamp":true,"ptype":"ОГС 0,4-9"},
@@ -10,7 +10,7 @@
 {"id":"fmv8gkjkfs0t02","kind":"pole","name":"","lat":61.70322,"lon":30.6876777,"tp":"ТП №75","note":"","src":"ул. Горького, ул. Садовая","row":9,"lamp":true,"ptype":"ОГС 0,4-9"},
 {"id":"fmv8gkjkfyhrlh","kind":"pole","name":"","lat":61.7030519,"lon":30.6873237,"tp":"ТП №75","note":"","src":"ул. Горького, ул. Садовая","row":10,"lamp":true,"ptype":"ОГС 0,4-9"},
 {"id":"fmv8gkjkfld631","kind":"pole","name":"","lat":61.7028545,"lon":30.6869133,"tp":"ТП №75","note":"","src":"ул. Горького, ул. Садовая","row":11,"lamp":true,"ptype":"ОГС 0,4-9"},
-{"id":"fmv8gkjkfa9amu","kind":"pole","name":"","lat":61.7026928,"lon":30.686578,"tp":"ТП №75","note":"","src":"ул. Горького, ул. Садовая","row":12,"lamp":true,"ptype":"ОГС 0,4-9"},
+{"id":"fmv8gkjkfa9amu","kind":"pole","name":"1","lat":61.7026928,"lon":30.686578,"tp":"ТП №75","note":"","src":"ул. Горького, ул. Садовая","row":12,"lamp":true,"ptype":"ОГС 0,4-9"},
 {"id":"fmv8gkjkfbpj69","kind":"pole","name":"","lat":61.7042657,"lon":30.6898564,"tp":"ТП №75","note":"","src":"ул. Горького, ул. Садовая","row":13,"lamp":true,"ptype":"ОГС 0,4-9"},
 {"id":"fmv8gkjkfc63y9","kind":"pole","name":"","lat":61.7043014,"lon":30.689788,"tp":"ТП №75","note":"","src":"ул. Горького, ул. Садовая","row":14,"lamp":true,"ptype":"ОГС 0,4-9"},
 {"id":"fmv8gkjkfv2ipq","kind":"pole","name":"","lat":61.7045134,"lon":30.6904035,"tp":"ТП №75","note":"","src":"ул. Горького, ул. Садовая","row":15,"lamp":true,"ptype":"ОГС 0,4-9"},
