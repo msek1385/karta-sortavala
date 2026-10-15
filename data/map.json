@@ -1,4 +1,4 @@
-{"updated":"2026-10-15T13:32:18.000Z","by":"файл Без ТП",
+{"updated":"2026-10-15T13:34:11.033Z","by":"msek1385",
 "pts":[
 {"id":"fmv8gkjkei6sw1","kind":"tp","name":"ТП №75","lat":61.7038816,"lon":30.6886654,"tp":"","note":"","src":"ул. Горького, ул. Садовая","row":2},
 {"id":"fmv8gkjkfwlugv","kind":"pole","name":"","lat":61.7039185,"lon":30.6888102,"tp":"ТП №75","note":"","src":"ул. Горького, ул. Садовая","row":3,"lamp":true,"ptype":"ОГС 0,4-9"},
@@ -154,8 +154,8 @@
 {"id":"fmv9k8ddsdydup","kind":"pole","name":"","lat":61.7012046,"lon":30.6963563,"tp":"","note":"В РД отсутствует точка подключения","src":"Без точки подключения","row":9,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C","from":"fmv9k8ddsygatv","via":[]},
 {"id":"fmv9k8ddsruph5","kind":"pole","name":"","lat":61.7015026,"lon":30.6953853,"tp":"","note":"В РД отсутствует точка подключения","src":"Без точки подключения","row":10,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C","from":"fmv9k8ddsdydup","via":[]},
 {"id":"fmv9kvm8tv4jto","kind":"pole","name":"","lat":61.7025504,"lon":30.6937682,"tp":"","note":"В РД отсутствует точка подключения","src":"Без ТП","row":2,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C"},
-{"id":"fmv9kvm8t6enz9","kind":"pole","name":"","lat":61.7024001,"lon":30.6936877,"tp":"","note":"В РД отсутствует точка подключения","src":"Без ТП","row":3,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C","from":"fmv9kvm8tv4jto","via":[]},
-{"id":"fmv9kvm8txwkhx","kind":"pole","name":"","lat":61.7019659,"lon":30.694605,"tp":"","note":"В РД отсутствует точка подключения","src":"Без ТП","row":4,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C","from":"fmv9kvm8twctss","via":[]},
+{"id":"fmv9kvm8t6enz9","kind":"pole","name":"","lat":61.7024001,"lon":30.6936877,"tp":"","note":"В РД отсутствует точка подключения","src":"Без ТП","row":3,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C","from":"fmv9kvm8tv4jto","via":[],"ext":[{"to":"fmv9kvm8txwkhx"}]},
+{"id":"fmv9kvm8txwkhx","kind":"pole","name":"","lat":61.7019659,"lon":30.694605,"tp":"","note":"В РД отсутствует точка подключения","src":"Без ТП","row":4,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C","from":"none"},
 {"id":"fmv9kvm8tfmrny","kind":"pole","name":"","lat":61.7021862,"lon":30.6934946,"tp":"","note":"В РД отсутствует точка подключения","src":"Без ТП","row":5,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C","from":"fmv9kvm8t6enz9","via":[]},
 {"id":"fmv9kvm8t8hetk","kind":"pole","name":"","lat":61.7021174,"lon":30.6929206,"tp":"","note":"В РД отсутствует точка подключения","src":"Без ТП","row":6,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C","from":"fmv9kvm8tfmrny","via":[]},
 {"id":"fmv9kvm8twctss","kind":"pole","name":"","lat":61.7019608,"lon":30.6934999,"tp":"","note":"В РД отсутствует точка подключения","src":"Без ТП","row":7,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C","from":"fmv9kvm8tfmrny","via":[]},
