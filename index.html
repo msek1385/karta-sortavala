@@ -103,10 +103,10 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
   <form id="fUnlock">
     <h1>Наружное освещение г. Сортавала, этап 2</h1>
     <label for="upass">Карта закрыта. Введите пароль.</label>
-    <input type="password" id="upass" autocomplete="current-password" spellcheck="false">
+    <input type="password" id="upass" autocomplete="off" spellcheck="false">
     <button type="submit" class="primary">Открыть карту</button>
     <div class="msg" id="umsg" role="status"></div>
-    <div class="note">Пароль запоминается на этом устройстве. Узнать его можно у редакторов карты.</div>
+    <div class="note">Пароль нужно вводить при каждом открытии карты. Узнать его можно у редакторов карты.</div>
   </form>
 </div>
 <div id="map"></div>
@@ -139,7 +139,7 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
       <div class="row" style="margin-top:6px"><button type="submit" class="primary">Сменить</button><button type="button" id="bPassCancel">Отмена</button></div>
       <div class="note">Старый пароль перестанет подходить. Сообщите новый всем, кто смотрит карту.</div>
     </form>
-    <button class="view-only" id="bForget" hidden>Забыть пароль на этом устройстве</button>
+    <button class="view-only" id="bForget" hidden>Закрыть карту</button>
   </section>
 
   <section class="edit-only">
@@ -730,11 +730,11 @@ const b64dec=s=>new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g,""
 /* ---------- закрытая карта ----------
    data/map.json на сайте зашифрован общим паролем: {"enc":"AES-GCM","kdf":"PBKDF2-SHA256","iter":…,"salt":…,"iv":…,"data":…}.
    Ключ получается из пароля (PBKDF2-SHA256), данные расшифровываются в браузере (AES-GCM): без пароля файл не прочитать,
-   в том числе в репозитории. Пароль запоминается на устройстве. Редактор может сменить пароль кнопкой «Сменить пароль карты»;
+   в том числе в репозитории. Пароль спрашивается при каждом открытии сайта (по просьбе Marina) и хранится только в памяти страницы. Редактор может сменить пароль кнопкой «Сменить пароль карты»;
    незашифрованный файл (если пароль ещё не задан) открывается как раньше. */
 const PASS_KEY="karta-sortavala-pass", PASS_ITER=600000;
 const CR={enc:false,pass:"",salt:"",iter:0,key:null};
-let storedPass="";try{storedPass=localStorage.getItem(PASS_KEY)||""}catch(e){}
+try{localStorage.removeItem(PASS_KEY)}catch(e){} // раньше пароль запоминался на устройстве: стираем
 const isEnc=o=>!!o&&o.enc==="AES-GCM";
 async function deriveKey(pass,salt,iter){
   const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(pass),"PBKDF2",false,["deriveKey"]);
@@ -747,7 +747,6 @@ async function encryptText(text,k=CR){const iv=crypto.getRandomValues(new Uint8A
   const ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},k.key,new TextEncoder().encode(text)));
   return JSON.stringify({enc:"AES-GCM",kdf:"PBKDF2-SHA256",iter:k.iter,salt:k.salt,iv:bytesB64(iv),data:bytesB64(ct)})+"\n"}
 const packDoc=async doc=>CR.enc?encryptText(docText(doc)):docText(doc);
-function keepPass(p){storedPass=p;try{p?localStorage.setItem(PASS_KEY,p):localStorage.removeItem(PASS_KEY)}catch(e){}}
 let unlockP=null,unlockRes=null;
 function askPass(err){ // окно пароля поверх страницы; одновременные запросы ждут один и тот же ввод
   if(unlockP)return unlockP;const u=$("upass");$("lock").hidden=false;$("umsg").textContent=err||"";$("umsg").classList.toggle("err",!!err);u.disabled=false;u.value="";u.focus();
@@ -757,11 +756,11 @@ $("fUnlock").addEventListener("submit",e=>{e.preventDefault();const p=$("upass")
 async function openDoc(obj){ // данные карты из файла; зашифрованные — после ввода подходящего пароля
   CR.enc=isEnc(obj);$("bForget").hidden=!CR.enc;$("bPass").textContent=CR.enc?"Сменить пароль карты":"Закрыть карту паролем";
   if(!CR.enc)return obj;
-  let pass=CR.pass||storedPass,typed=false;
+  let pass=CR.pass,typed=false;
   for(;;){
     if(pass){const doc=await tryDecrypt(obj,pass);
-      if(doc){if(pass!==storedPass)keepPass(pass);$("lock").hidden=true;return doc}
-      CR.pass="";CR.key=null;keepPass("")}
+      if(doc){$("lock").hidden=true;return doc}
+      CR.pass="";CR.key=null}
     pass=await askPass(!pass?"":typed?"Пароль не подходит.":"Пароль карты сменился. Введите новый.");typed=true}}
 async function setPassword(pass){ // новая соль и ключ; данные с сайта перешифровываются и сохраняются
   const d=diff();if(d.n||d.lines)throw new Error("сначала сохраните правки на сайт");
@@ -771,7 +770,7 @@ async function setPassword(pass){ // новая соль и ключ; данны
   const r=await gh(`/repos/${REPO}/contents/${DATA_PATH}`,{method:"PUT",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({message:`Карта: ${CR.enc?"сменён пароль":"закрыта паролем"} (${ED.login})`,content:b64enc(await encryptText(docText(doc),k)),...(rem.sha?{sha:rem.sha}:{})})});
   if(!r.ok)throw new Error("GitHub ответил "+r.status);
-  ED.sha=(await r.json()).content.sha;Object.assign(CR,k,{enc:true,pass});keepPass(pass);
+  ED.sha=(await r.json()).content.sha;Object.assign(CR,k,{enc:true,pass});
   $("bForget").hidden=false;$("bPass").textContent="Сменить пароль карты";applyDoc(doc)}
 async function gh(url,opt={}){return fetch(API+url,{cache:"no-store",...opt,headers:{Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28",Authorization:"Bearer "+ED.token,...(opt.headers||{})}})}
 function applyDoc(doc){S.pts=doc.pts||[];S.lines=doc.lines||[];ED.updated=doc.updated||"";ED.by=doc.by||"";selTp=null;render();snapshot();histReset();accInfo()}
@@ -840,7 +839,7 @@ $("fPass").addEventListener("submit",async e=>{e.preventDefault();const a=$("np1
   try{const was=CR.enc;await setPassword(a);$("bPassCancel").onclick();
     msg(was?"Пароль карты изменён. Сообщите новый пароль всем, кто смотрит карту: старый больше не подходит.":"Карта закрыта паролем. Сообщите пароль всем, кто смотрит карту.")}
   catch(err){msg("Не удалось сменить пароль: "+err.message+".",true)}});
-$("bForget").onclick=()=>{keepPass("");location.reload()};
+$("bForget").onclick=()=>location.reload(); // пароль хранится только в памяти страницы: после перезагрузки его спросят снова
 $("bReload").onclick=async()=>{if(diff().n&&$("bReload").dataset.armed!=="1"){$("bReload").dataset.armed="1";$("bReload").textContent="Есть несохранённые правки. Сбросить их?";
     setTimeout(()=>{$("bReload").dataset.armed="";$("bReload").textContent="Обновить"},4000);return}
   $("bReload").dataset.armed="";$("bReload").textContent="Обновить";
