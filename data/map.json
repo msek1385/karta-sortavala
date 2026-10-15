@@ -1,4 +1,4 @@
-{"updated":"2026-10-15T12:25:27.228Z","by":"msek1385",
+{"updated":"2026-10-15T12:39:43.000Z","by":"файл КШ №10",
 "pts":[
 {"id":"fmv8gkjkei6sw1","kind":"tp","name":"ТП №75","lat":61.7038816,"lon":30.6886654,"tp":"","note":"","src":"ул. Горького, ул. Садовая","row":2},
 {"id":"fmv8gkjkfwlugv","kind":"pole","name":"","lat":61.7039185,"lon":30.6888102,"tp":"ТП №75","note":"","src":"ул. Горького, ул. Садовая","row":3,"lamp":true,"ptype":"ОГС 0,4-9"},
@@ -108,7 +108,29 @@
 {"id":"fmv9fqemm0m57f","kind":"pole","name":"","lat":61.700968,"lon":30.6914661,"tp":"ТП №13","note":"","src":"ТП №13","row":38,"lamp":true,"ptype":"ОГС 0,4-9"},
 {"id":"fmv9fqemmtu2xe","kind":"pole","name":"","lat":61.7003975,"lon":30.6914581,"tp":"ТП №13","note":"","src":"ТП №13","row":39,"lamp":true,"ptype":"ОГС 0,4-9"},
 {"id":"fmv9fqemm1zo6x","kind":"pole","name":"","lat":61.7003236,"lon":30.6917504,"tp":"ТП №13","note":"","src":"ТП №13","row":40,"lamp":true,"ptype":"ОГС 0,4-9"},
-{"id":"fmv9fqemmfm79q","kind":"pole","name":"","lat":61.70013,"lon":30.6914983,"tp":"ТП №13","note":"","src":"ТП №13","row":41,"lamp":true,"ptype":"ОГС 0,4-9"}
+{"id":"fmv9fqemmfm79q","kind":"pole","name":"","lat":61.70013,"lon":30.6914983,"tp":"ТП №13","note":"","src":"ТП №13","row":41,"lamp":true,"ptype":"ОГС 0,4-9"},
+{"id":"fmv9ixxb6xo86c","kind":"tp","name":"КШ №10","lat":61.7027775,"lon":30.6915573,"tp":"","note":"","src":"КШ №10","row":2},
+{"id":"fmv9ixxb6ndxyr","kind":"pole","name":"","lat":61.7024986,"lon":30.6913186,"tp":"КШ №10","note":"","src":"КШ №10","row":3,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C"},
+{"id":"fmv9ixxb69ak2n","kind":"pole","name":"","lat":61.702496,"lon":30.6910745,"tp":"КШ №10","note":"","src":"КШ №10","row":4,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C"},
+{"id":"fmv9ixxb6wkkrz","kind":"pole","name":"","lat":61.7024909,"lon":30.6907071,"tp":"КШ №10","note":"","src":"КШ №10","row":5,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C"},
+{"id":"fmv9ixxb6joooq","kind":"pole","name":"","lat":61.7024922,"lon":30.6904308,"tp":"КШ №10","note":"","src":"КШ №10","row":6,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C"},
+{"id":"fmv9ixxb6a2s9i","kind":"pole","name":"","lat":61.7024973,"lon":30.6916485,"tp":"КШ №10","note":"В РД существующее на тросу","src":"КШ №10","row":7,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 1797 C"},
+{"id":"fmv9ixxb61ic6l","kind":"pole","name":"","lat":61.7023241,"lon":30.691678,"tp":"КШ №10","note":"В РД существующее на тросу","src":"КШ №10","row":8,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 1797 C"},
+{"id":"fmv9ixxb6h7ide","kind":"pole","name":"","lat":61.7019867,"lon":30.691678,"tp":"КШ №10","note":"В РД существующее на тросу","src":"КШ №10","row":9,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 1797 C"},
+{"id":"fmv9ixxb6dicfi","kind":"pole","name":"","lat":61.7016072,"lon":30.6916807,"tp":"КШ №10","note":"В РД существующее на тросу","src":"КШ №10","row":10,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 1797 C"},
+{"id":"fmv9ixxb6in8up","kind":"pole","name":"","lat":61.701299,"lon":30.6916888,"tp":"КШ №10","note":"В РД существующее на тросу","src":"КШ №10","row":11,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 1797 C"},
+{"id":"fmv9ixxb6kgund","kind":"pole","name":"","lat":61.7012964,"lon":30.6912167,"tp":"КШ №10","note":"В РД существующее на тросу","src":"КШ №10","row":12,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 1797 C"},
+{"id":"fmv9ixxb6yumf3","kind":"pole","name":"","lat":61.7012926,"lon":30.6906212,"tp":"КШ №10","note":"В РД существующее на тросу","src":"КШ №10","row":13,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 1797 C"},
+{"id":"fmv9ixxb6gcvdl","kind":"pole","name":"","lat":61.7012926,"lon":30.6897361,"tp":"КШ №10","note":"В РД существующее на тросу","src":"КШ №10","row":14,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 1797 C"},
+{"id":"fmv9ixxb69g700","kind":"pole","name":"","lat":61.7024986,"lon":30.692075,"tp":"КШ №10","note":"","src":"КШ №10","row":15,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C"},
+{"id":"fmv9ixxb6wh9b3","kind":"pole","name":"","lat":61.7025011,"lon":30.6923164,"tp":"КШ №10","note":"","src":"КШ №10","row":16,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C"},
+{"id":"fmv9ixxb6twrt8","kind":"pole","name":"","lat":61.7025024,"lon":30.6927348,"tp":"КШ №10","note":"","src":"КШ №10","row":17,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C"},
+{"id":"fmv9ixxb63i6bv","kind":"pole","name":"","lat":61.7025164,"lon":30.6930486,"tp":"КШ №10","note":"","src":"КШ №10","row":18,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C"},
+{"id":"fmv9ixxb6h3w90","kind":"pole","name":"","lat":61.702575,"lon":30.6932686,"tp":"КШ №10","note":"","src":"КШ №10","row":19,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C"},
+{"id":"fmv9ixxb6zfbih","kind":"pole","name":"","lat":61.7026845,"lon":30.6930835,"tp":"КШ №10","note":"","src":"КШ №10","row":20,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C"},
+{"id":"fmv9ixxb6c6dhj","kind":"pole","name":"","lat":61.7028029,"lon":30.6928287,"tp":"КШ №10","note":"","src":"КШ №10","row":21,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C"},
+{"id":"fmv9ixxb6l1slj","kind":"pole","name":"","lat":61.7030041,"lon":30.6924156,"tp":"КШ №10","note":"","src":"КШ №10","row":22,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C"},
+{"id":"fmv9ixxb6bkwm4","kind":"pole","name":"","lat":61.7032626,"lon":30.6918872,"tp":"КШ №10","note":"","src":"КШ №10","row":23,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C"}
 ],
 "lines":[
 
