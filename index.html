@@ -56,7 +56,6 @@ input[type=number]{width:70px;font:inherit;padding:3px 5px;border:1px solid var(
 .tp-wrap{width:0!important;height:0!important}
 .pole-wrap{background:none;border:none}
 .pole-ic{display:block;width:12px;height:12px;border-radius:50%;border:2px solid #00456b;background:#006BA6;box-sizing:border-box;cursor:move}
-.pole-ic.free{background:#fff;border-color:#006BA6}
 .pole-ic.other{width:8px;height:8px;margin:2px;background:#fff;border-color:#8a8f99}
 .pole-ic.dim{opacity:.3}
 .pole-ic.pick{box-shadow:0 0 0 4px #f5a623}
@@ -371,12 +370,12 @@ function render(){
     if(t&&ls==="rays")L.polyline([[p.lat,p.lon],[t.lat,t.lon]],{color:col,weight:1.6,opacity:dim?.15:.8,dashArray:p.linkAuto?"4 4":null,interactive:false}).addTo(gLinks);
     let m;
     if(edit){ // в режиме правки опоры — перетаскиваемые маркеры
-      const cls="pole-ic"+(p.lamp===false?" other":(!t?" free":""))+(dim?" dim":"")+(linkChild===p.id?" pick":"");
-      const st=p.lamp===false?"":(!t?`border-color:${col}`:`background:${col};border-color:${dark}`);
+      const cls="pole-ic"+(p.lamp===false?" other":"")+(dim?" dim":"")+(linkChild===p.id?" pick":"");
+      const st=p.lamp===false?"":`background:${col};border-color:${dark}`; // опора закрашена своим цветом и без источника питания
       m=L.marker([p.lat,p.lon],{icon:L.divIcon({className:"pole-wrap",html:`<span class="${cls}" style="${st}"></span>`,iconSize:[12,12]}),draggable:true,title:p.name||p.ptype||"Опора"});
       m.on("dragend",()=>{const ll=m.getLatLng();p.lat=+ll.lat.toFixed(7);p.lon=+ll.lng.toFixed(7);render()});
-    }else m=L.circleMarker([p.lat,p.lon],{radius:p.lamp===false?3.5:5,color:p.lamp===false?"#8a8f99":(t?dark:col),weight:t?1.2:2,
-      fillColor:p.lamp===false||!t?"#ffffff":col,fillOpacity:dim?.25:.95,opacity:dim?.3:1});
+    }else m=L.circleMarker([p.lat,p.lon],{radius:p.lamp===false?3.5:5,color:p.lamp===false?"#8a8f99":dark,weight:1.2,
+      fillColor:p.lamp===false?"#ffffff":col,fillOpacity:dim?.25:.95,opacity:dim?.3:1});
     m.on("click",ev=>{L.DomEvent.stop(ev);if(mode==="link")return linkClick(p);if(mode)return;openPopup([p.lat,p.lon],polePopup(p))});
     m.addTo(gPoles);
   }
