@@ -257,7 +257,8 @@ function resolve(){
 
 /* Трасса по опорам. У опоры может быть задано, откуда к ней идёт линия (p.from — id опоры или ТП, "none" — линии нет),
    и изгибы линии (p.via — точки [lat,lon] от предыдущей опоры к этой). Где p.from не задан, линия строится
-   автоматически: минимальное остовное дерево (алгоритм Прима) от ТП по её опорам. */
+   автоматически: минимальное остовное дерево (алгоритм Прима) от ТП по её опорам.
+   Дополнительные линии опоры (p.ext — [{to, via}]) рисуются вдобавок к основной: так опора может быть соединена с несколькими соседями. */
 function treeParents(t,poles){
   const nodes=[t,...poles], n=nodes.length, inT=new Array(n).fill(false), best=new Array(n).fill(Infinity), par=new Array(n).fill(-1), res=new Map();
   best[0]=0;
@@ -270,7 +271,10 @@ function traceEdges(){
   const byId=new Map(S.pts.map(p=>[p.id,p])), showOther=$("cOtherPoles").checked, auto=new Map(), out=[];
   const vis=p=>p.kind==="pole"&&(p.lamp!==false||showOther);
   for(const t of S.pts)if(t.kind==="tp")for(const [c,par] of treeParents(t,S.pts.filter(p=>vis(p)&&p.link===t.id)))auto.set(c,par);
-  for(const p of S.pts){if(!vis(p)||p.from==="none")continue;
+  for(const p of S.pts){if(!vis(p))continue;
+    (p.ext||[]).forEach((x,k)=>{const par=byId.get(x.to);
+      if(par&&par!==p&&(par.kind==="tp"||vis(par)))out.push({child:p,parent:par,auto:false,extra:k,coords:[[par.lat,par.lon],...(x.via||[]),[p.lat,p.lon]]})});
+    if(p.from==="none")continue;
     let par=p.from&&byId.get(p.from), isAuto=false;
     if(!par){par=byId.get(auto.get(p.id));isAuto=true}
     if(!par||par===p)continue;
@@ -281,20 +285,29 @@ const canEdit=()=>ED.role!=="view";
 let selEdge=null, linkChild=null;
 function openPopup(latlng,content,opt){L.popup({maxWidth:320,minWidth:240,...opt}).setLatLng(latlng).setContent(content).openOn(map)}
 function fixEdge(e){if(e.auto){e.child.from=e.parent.id;e.child.via=[]}if(!e.child.via)e.child.via=[]}
-function edgeOf(id){return traceEdges().find(e=>e.child.id===id)}
-function selectEdge(e){map.closePopup();selEdge=e.child.id;render()}
+const edgeKey=e=>e.extra!=null?e.child.id+"#"+e.extra:e.child.id;
+function edgeOf(id){return traceEdges().find(e=>edgeKey(e)===id)}
+// изгибы линии (меняемые на месте); основная автоматическая линия при правке становится ручной
+function viaOf(e){if(e.extra!=null){const x=e.child.ext[e.extra];return x.via||(x.via=[])}fixEdge(e);return e.child.via}
+function selectEdge(e){map.closePopup();selEdge=edgeKey(e);render()}
 function clearEdge(){if(selEdge){selEdge=null;render()}}
 /* Панель выбранной линии внизу карты: не закрывает саму линию и её изгибы, как закрывала бы карточка. */
 const edgeBar=L.DomUtil.create("div","",map.getContainer());edgeBar.id="edgeBar";edgeBar.hidden=true;
 L.DomEvent.disableClickPropagation(edgeBar);L.DomEvent.disableScrollPropagation(edgeBar);
+// кнопки панели перерисовывают её во время щелчка; щелчок не должен дойти до карты (иначе он снимет выбор линии)
+L.DomEvent.on(edgeBar,"click",L.DomEvent.stopPropagation);
 function showEdgeBar(){
   const e=canEdit()&&selEdge&&edgeOf(selEdge);
   if(!e){edgeBar.hidden=true;return}
   edgeBar.hidden=false;
-  edgeBar.innerHTML=`<div><b>Линия трассы</b> к опоре${e.child.name?" "+esc(e.child.name):""}: ${e.auto?"построена автоматически":"проведена вручную"}.
+  edgeBar.innerHTML=`<div><b>${e.extra!=null?"Дополнительная линия":"Линия трассы"}</b> к опоре${e.child.name?" "+esc(e.child.name):""}: ${e.auto?"построена автоматически":"проведена вручную"}.
    Тяните кружки на линии, чтобы изогнуть её; двойной щелчок по квадратику убирает изгиб.</div>
    <div class="pp-row"><button class="st">Выпрямить</button><button class="au">Авто</button><button class="rm">Удалить</button><button class="ok primary">Готово</button></div>`;
-  edgeBar.querySelector(".st").onclick=()=>{const c=e.child;if(e.auto)c.from=e.parent.id;c.via=[];render()};
+  edgeBar.querySelector(".st").onclick=()=>{viaOf(e).length=0;render()};
+  if(e.extra!=null){ // дополнительную линию можно только выпрямить или удалить
+    edgeBar.querySelector(".au").remove();
+    edgeBar.querySelector(".rm").onclick=()=>{e.child.ext.splice(e.extra,1);if(!e.child.ext.length)delete e.child.ext;selEdge=null;render()};
+    edgeBar.querySelector(".ok").onclick=clearEdge;return}
   edgeBar.querySelector(".au").title="Вернуть автоматическую линию по ближайшим опорам";
   edgeBar.querySelector(".au").onclick=()=>{delete e.child.from;delete e.child.via;render()};
   edgeBar.querySelector(".rm").title="Убрать линию к этой опоре";
@@ -305,19 +318,24 @@ document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&selEdge)clearEdge
 function drawHandles(){
   const e=selEdge&&edgeOf(selEdge);if(!e)return;
   const box=(cls,sz=10)=>L.divIcon({className:"pole-wrap",html:`<span class="${cls}"></span>`,iconSize:[sz,sz]});
-  (e.child.via||[]).forEach((v,i)=>{if(e.auto)return;
+  e.coords.slice(1,-1).forEach((v,i)=>{
     const h=L.marker(v,{icon:box("vh"),draggable:true,zIndexOffset:2000,title:"Изгиб линии"}).addTo(gHandles);
-    h.on("dragend",()=>{const ll=h.getLatLng();e.child.via[i]=[+ll.lat.toFixed(7),+ll.lng.toFixed(7)];render()});
-    h.on("dblclick",ev=>{L.DomEvent.stop(ev);e.child.via.splice(i,1);render()})});
+    h.on("dragend",()=>{const ll=h.getLatLng();viaOf(e)[i]=[+ll.lat.toFixed(7),+ll.lng.toFixed(7)];render()});
+    h.on("dblclick",ev=>{L.DomEvent.stop(ev);viaOf(e).splice(i,1);render()})});
   for(let i=0;i<e.coords.length-1;i++){const [a,b]=[e.coords[i],e.coords[i+1]];
     const h=L.marker([(a[0]+b[0])/2,(a[1]+b[1])/2],{icon:box("mh",12),draggable:true,zIndexOffset:1900,title:"Потяните, чтобы изогнуть линию"}).addTo(gHandles);
-    h.on("dragend",()=>{const ll=h.getLatLng();fixEdge(e);e.child.via.splice(i,0,[+ll.lat.toFixed(7),+ll.lng.toFixed(7)]);render()})}
+    h.on("dragend",()=>{const ll=h.getLatLng();viaOf(e).splice(i,0,[+ll.lat.toFixed(7),+ll.lng.toFixed(7)]);render()})}
 }
 function linkClick(p){
   if(!linkChild){if(p.kind!=="pole")return msg("Сначала щёлкните опору, к которой идёт линия.",true);
     linkChild=p.id;render();return msg("Теперь щёлкните опору или ТП, от которой идёт линия к выбранной опоре.")}
   const c=S.pts.find(x=>x.id===linkChild);linkChild=null;
   if(!c||c===p){render();return msg("Выбор сброшен. Щёлкните опору, к которой идёт линия.")}
+  const linked=(a,b)=>a.from===b.id||(a.ext||[]).some(x=>x.to===b.id);
+  if(linked(c,p)||linked(p,c)){render();return msg("Эти точки уже соединены линией.")}
+  if(c.from&&c.from!=="none"&&S.pts.some(x=>x.id===c.from)){ // своя линия у опоры уже проведена вручную: добавляем ещё одну, не заменяя её
+    (c.ext||(c.ext=[])).push({to:p.id});render();
+    return msg("Добавлена ещё одна линия, прежняя линия к опоре осталась. Щёлкните следующую опору или выключите «Провести линию».")}
   c.from=p.id;c.via=[];
   const src=p.kind==="tp"?p:S.pts.find(x=>x.id===p.link);if(src)c.tp=tpLabel(src); // линия от опоры другой ТП меняет источник питания
   render();msg("Линия проведена. Щёлкните следующую опору или выключите «Провести линию».");
@@ -332,7 +350,7 @@ function render(){
     L.polyline(l.coords,{color:"#8a8f99",weight:l.minor?1.5:2.5,opacity:.85,interactive:false}).addTo(gPower);
   const showOther=$("cOtherPoles").checked, ls=$("sLinks").value;
   if(ls==="tree"&&$("cPoles").checked)for(const e of traceEdges()){
-    const dim=selTp&&e.child.link!==selTp, sel=selEdge===e.child.id;
+    const dim=selTp&&e.child.link!==selTp, sel=selEdge===edgeKey(e);
     const line=L.polyline(e.coords,{color:POLE_COLOR,weight:sel?4:2,opacity:dim?.15:.85,dashArray:e.child.linkAuto?"4 4":null,interactive:edit});
     if(edit)line.on("click",ev=>{L.DomEvent.stop(ev);if(mode)return;selectEdge(e)});
     line.addTo(gLinks);
