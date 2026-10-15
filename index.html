@@ -622,12 +622,11 @@ function diff(){const cur=new Map(S.pts.map(p=>[p.id,JSON.stringify(clean(p))]))
   for(const [id,j] of cur)if(ED.base.get(id)!==j)changed.push(id);
   for(const id of ED.base.keys())if(!cur.has(id))deleted.push(id);
   return {changed,deleted,lines:JSON.stringify(S.lines)!==ED.baseLines,n:changed.length+deleted.length}}
-const fmtTime=iso=>{try{return new Date(iso).toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"})}catch(e){return iso}};
 function setRole(r){ED.role=r;document.body.dataset.role=r;if(r!=="edit"&&mode)setMode(mode);accInfo()}
-function accInfo(){if(!SITE)return;const upd=ED.updated?`Данные от ${fmtTime(ED.updated)}${ED.by?" ("+esc(ED.by)+")":""}.`:"";
+function accInfo(){if(!SITE)return; // дату и автора последнего сохранения не показываем
   $("accInfo").innerHTML=ED.role==="edit"
-    ?`<span class="role">Вы редактор: ${esc(ED.login)}</span><div class="note">${upd} Правки видны всем после кнопки «Сохранить на сайт».</div>`
-    :`<span class="role">Просмотр</span><div class="note">${upd} Карта обновляется сама каждые 5 минут.</div>`}
+    ?`<span class="role">Вы редактор: ${esc(ED.login)}</span><div class="note">Правки видны всем после кнопки «Сохранить на сайт».</div>`
+    :`<span class="role">Просмотр</span><div class="note">Карта обновляется сама каждые 5 минут.</div>`}
 function updSave(){if(ED.role!=="edit")return;const d=diff(),n=d.n+(d.lines?1:0);
   $("bSave").disabled=!n;$("bSave").textContent=n?`Сохранить на сайт (${n})`:"Изменений нет"}
 const _render=render;render=function(){_render();updSave();histTrack()};
