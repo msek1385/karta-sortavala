@@ -134,20 +134,21 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
   </section>
 
   <section>
-    <h2>Слои и привязка</h2>
+    <h2>Слои</h2>
     <label class="chk"><input type="checkbox" id="cPoles" checked> Опоры освещения</label>
-    <label class="chk"><input type="checkbox" id="cOtherPoles"> Прочие опоры ЛЭП из OSM (без светильника)</label>
     <label class="chk"><input type="checkbox" id="cTp" checked> ТП / КТП</label>
+    <div hidden><!-- скрытые настройки: связь опор с ТП (трасса строится как раньше), слои OSM -->
+    <label class="chk"><input type="checkbox" id="cOtherPoles"> Прочие опоры ЛЭП из OSM (без светильника)</label>
     <label class="chk" for="sLinks">Связь опор с ТП
       <select id="sLinks">
         <option value="tree">условная трасса по опорам</option>
         <option value="rays">лучи от каждой опоры к ТП</option>
         <option value="none">не показывать</option>
       </select></label>
-    <label class="chk"><input type="checkbox" id="cPower" checked> Линии электропередачи из OSM</label>
+    <label class="chk"><input type="checkbox" id="cPower"> Линии электропередачи из OSM</label>
     <label class="chk"><input type="checkbox" id="cAuto" checked> Привязывать без данных к ближайшей ТП,
       не дальше <input type="number" id="nRad" value="600" min="50" step="50"> м</label>
-    <div class="note">Трасса сначала строится автоматически по ближайшим опорам одной ТП; редактор может провести линии и изогнуть их вручную. Привязка по близости показана пунктиром. Если в файле одна ТП и нет столбца «ТП», все опоры файла привязываются к этой ТП.</div>
+    </div>
   </section>
 
   <section class="edit-only">
@@ -182,7 +183,6 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
       <span class="lg-sq"></span><span>ТП / КТП</span>
       <span class="lg-l" style="border-color:#006BA6"></span><span>Связь с ТП по данным (условная трасса или луч)</span>
       <span class="lg-ld" style="border-color:#006BA6"></span><span>Связь с ТП по близости (предположение)</span>
-      <span class="lg-p"></span><span>Линия электропередачи (OSM)</span>
     </div>
   </section>
   <div class="note">Картография © Яндекс; © участники OpenStreetMap (ODbL); снимки © Esri.</div>
