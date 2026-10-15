@@ -85,6 +85,12 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
 #acc{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--bg)}
 #acc input[type=password]{width:100%;font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--fg);margin-top:4px}
 .role{font-weight:600}
+/* закрытая карта: окно пароля поверх всей страницы */
+#lock{position:fixed;inset:0;z-index:5000;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
+#lock[hidden]{display:none}
+#lock form{width:100%;max-width:360px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:10px}
+#lock input{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
+#lock button{text-align:center}
 @media (max-width:760px){
   body{flex-direction:column}
   #map{flex:1 1 55%;min-height:0}
@@ -93,6 +99,16 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
 </style>
 </head>
 <body>
+<div id="lock" hidden>
+  <form id="fUnlock">
+    <h1>Наружное освещение г. Сортавала, этап 2</h1>
+    <label for="upass">Карта закрыта. Введите пароль.</label>
+    <input type="password" id="upass" autocomplete="current-password" spellcheck="false">
+    <button type="submit" class="primary">Открыть карту</button>
+    <div class="msg" id="umsg" role="status"></div>
+    <div class="note">Пароль запоминается на этом устройстве. Узнать его можно у редакторов карты.</div>
+  </form>
+</div>
 <div id="map"></div>
 <aside id="side">
   <div>
@@ -114,6 +130,16 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
       <button id="bReload">Обновить</button>
       <button id="bLogout">Выйти</button>
     </div>
+    <div class="row edit-only"><button id="bPass">Сменить пароль карты</button></div>
+    <form id="fPass" class="edit-only" hidden>
+      <label for="np1">Новый пароль карты (не короче 8 знаков)</label>
+      <input type="password" id="np1" autocomplete="new-password" spellcheck="false">
+      <label for="np2">Новый пароль ещё раз</label>
+      <input type="password" id="np2" autocomplete="new-password" spellcheck="false">
+      <div class="row" style="margin-top:6px"><button type="submit" class="primary">Сменить</button><button type="button" id="bPassCancel">Отмена</button></div>
+      <div class="note">Старый пароль перестанет подходить. Сообщите новый всем, кто смотрит карту.</div>
+    </form>
+    <button class="view-only" id="bForget" hidden>Забыть пароль на этом устройстве</button>
   </section>
 
   <section class="edit-only">
@@ -187,7 +213,7 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
   <div class="note">Картография © Яндекс; © участники OpenStreetMap (ODbL); снимки © Esri.</div>
 </aside>
 
-<script id="emb" type="application/json">{"ver": "b2ec9e37d6a4", "files": [{"name": "ул. Горького, ул. Садовая", "rows": [["Широта", "Долгота", "Подпись"], ["61.70388155841818", "30.688665369155622", "ТП №75"], ["61.70391848581483", "30.688810208442334", "ОГС 0,4-9"], ["61.70380260942176", "30.68892286122104", "ОГС 0,4-9"], ["61.704015261877295", "30.689343968036393", "ОГС 0,4-9"], ["61.704190985542354", "30.689700701835378", "ОГС 0,4-9"], ["61.70356633906173", "30.68843680959195", "ОГС 0,4-9"], ["61.70341607959705", "30.688122991137202", "ОГС 0,4-9"], ["61.70321997714854", "30.68767774444073", "ОГС 0,4-9"], ["61.703051888321106", "30.687323692850757", "ОГС 0,4-9"], ["61.70285451014759", "30.686913314871486", "ОГС 0,4-9"], ["61.702692786424", "30.68657803874458", "ОГС 0,4-9"], ["61.70426573618322", "30.689856368712917", "ОГС 0,4-9"], ["61.70430138993663", "30.689787972382966", "ОГС 0,4-9"], ["61.704513402360966", "30.690403539351912", "ОГС 0,4-9"], ["61.704609539586926", "30.69060470502798", "ОГС 0,4-9"], ["61.70484637971757", "30.691100913695752", "ОГС 0,4-9"], ["61.70505647830563", "30.69155152481025", "ОГС 0,4-9"], ["61.70506475486973", "30.691774148158448", "ОГС 0,4-9"], ["61.70517044023278", "30.691960561684926", "ОГС 0,4-9"], ["61.70534615730584", "30.692330706529003", "ОГС 0,4-9"], ["61.705533333083615", "30.69272230904516", "ОГС 0,4-9"], ["61.70571923442011", "30.693138051442485", "ОГС 0,4-9"], ["61.70588603534671", "30.693486738614403", "ОГС 0,4-9"], ["61.70605156208922", "30.693822014741283", "ОГС 0,4-9"], ["61.706219634476554", "30.69415192645011", "ОГС 0,4-9"], ["61.70645900874045", "30.69465886395391", "ОГС 0,4-9"], ["61.70665127075369", "30.695069241933208", "ОГС 0,4-9"], ["61.70685371753492", "30.694629359654765", "ОГС 0,4-9"], ["61.706856264018015", "30.69548498433051", "ОГС 0,4-9"], ["61.70720513142184", "30.695090699605316", "ОГС 0,4-9"], ["61.71036767578809", "30.688334215096717", "ОГС 0,4-7"], ["61.71014615548496", "30.688387859277032", "ОГС 0,4-7"], ["61.70988134751265", "30.688586342744085", "ОГС 0,4-7"], ["61.70963690735028", "30.688795555047243", "ОГС 0,4-7"], ["61.70938991897149", "30.689010131768423", "ОГС 0,4-7"], ["61.70916075252447", "30.689224708489633", "ОГС 0,4-7"], ["61.708941769719274", "30.68943928521074", "ОГС 0,4-7"], ["61.708168952434654", "30.6900749687473", "ОГС 0,4-7"], ["61.70846942388032", "30.68984966318994", "ОГС 0,4-7"], ["61.708734243915146", "30.689624357632525", "ОГС 0,4-7"], ["61.707910493364345", "30.690329778603683", "ОГС 0,4-9"], ["61.707645666136116", "30.69072674553789", "ОГС 0,4-9"], ["61.70743813167303", "30.690903771332863", "ОГС 0,4-9"], ["61.70727133915677", "30.691389251164555", "ОГС 0,4-9"], ["61.7069912275251", "30.69198201935678", "ОГС 0,4-9"], ["61.70727897850167", "30.69270353358179", "ОГС 0,4-9"], ["61.706820612824686", "30.69177280705357", "ОГС 0,4-9"], ["61.706930111908875", "30.69129805605793", "ОГС 0,4-9"], ["61.70678878161346", "30.69242190163517", "ОГС 0,4-9"], ["61.70663344487361", "30.691979337147714", "ОГС 0,4-9"], ["61.70639661848876", "30.69250773232362", "ОГС 0,4-9"], ["61.70616870321113", "30.692995894364326", "ОГС 0,4-9"], ["61.70622600050691", "30.693095136097867", "ОГС 0,4-9"], ["61.70588858154356", "30.693599391392627", "ОГС 0,4-9"], ["61.70569504144968", "30.693972218445666", "ОГС 0,4-9"], ["61.70541746208732", "30.694562304428953", "ОГС 0,4-9"], ["61.70515643333617", "30.69509606402291", "ОГС 0,4-9"], ["61.70499981500045", "30.695450115612804", "ОГС 0,4-9"], ["61.7048088159743", "30.69587926905517", "ОГС 0,4-9"], ["61.70452613524276", "30.696458626202404", "ОГС 0,4-9"], ["61.7043364066338", "30.697231102398685", "ОГС 0,4-9"], ["61.70398686969591", "30.69748859446398", "ОГС 0,4-9"], ["61.703822605452125", "30.697831917218025", "ОГС 0,4-9"], ["61.7034991673631", "30.698668766430625", "ОГС 0,4-9"], ["61.70359944625662", "30.698821652344403", "ОГС 0,4-9"], ["61.704903997183294", "30.692085954955715", "ОГС 0,4-9"], ["61.70474610424645", "30.692397091201425", "ОГС 0,4-9"], ["61.70451945007799", "30.692622396758686", "ОГС 0,4-9"], ["61.70439720893415", "30.692917439750317", "ОГС 0,4-9"]]}, {"name": "ТП №13", "rows": [["Широта", "Долгота", "Описание", "Подпись", "Номер метки", "preset"], ["61.70192948299791", "30.687609110602885", "", "ТП №13", "", "islands#blueIcon"], ["61.7020160778663", "30.687654708156362", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70219563328087", "30.687289927730337", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.702424851435694", "30.686804447898645", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70184161520036", "30.688065086135612", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.702617138645465", "30.68639675212833", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.702825979024354", "30.68597832752202", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70304245844505", "30.68550625873539", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.703289497804626", "30.684991274604528", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70348050624942", "30.68457284999821", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.7036791537739", "30.684175883064004", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.7038930804339", "30.683687721023297", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70406371136013", "30.683344398269405", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70426744853937", "30.682925973663064", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70447373104921", "30.682502184638725", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.704723305571186", "30.68197110725378", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70490666515143", "30.681590233573655", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.7017384651161", "30.68861762119256", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.701588196720486", "30.688939486274347", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70141245817386", "30.689331088790503", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.7016798859894", "30.689073596725084", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.701762660788184", "30.689060185680017", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70177539534527", "30.689323042163462", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70169007364322", "30.689323042163462", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70138698870019", "30.68956175876579", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70174865274157", "30.68956175876579", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70207338267618", "30.689577852019895", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70220964087355", "30.68958321643792", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70109663555494", "30.68947861028633", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70102786731805", "30.68964490724525", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70089669782944", "30.690395925769376", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70086740748288", "30.69084117246585", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.700717134831365", "30.690986011752663", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70060888711852", "30.691090617904255", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70067892965982", "30.691455398330227", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.700696758813145", "30.692125950583986", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70096801314266", "30.691466127165924", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70039748458604", "30.691458080539217", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70032362072056", "30.691750441321833", "", "ОГС 0,4-9", "", "islands#blueIcon"], ["61.70013004560186", "30.69149831367444", "", "ОГС 0,4-9", "", "islands#blueIcon"]]}, {"name": "КШ №10", "rows": [["Широта", "Долгота", "Описание", "Подпись", "Источник питания", "Цвет опоры"], ["61.70277745643445", "30.691557322273162", "", "КШ №10", "", ""], ["61.702498576898506", "30.691318605670833", "", "ОГС 0,4-9", "КШ №10", "PANTONE 307 C"], ["61.70249603000066", "30.6910745246502", "", "ОГС 0,4-9", "КШ №10", "PANTONE 307 C"], ["61.70249093655333", "30.690707062015317", "", "ОГС 0,4-9", "КШ №10", "PANTONE 307 C"], ["61.702492209962216", "30.69043079448683", "", "ОГС 0,4-9", "КШ №10", "PANTONE 307 C"], ["61.70249730356133", "30.691648517379583", "В РД существующее на тросу", "ОГС 0,4-9", "КШ №10", "PANTONE 1797 C"], ["61.702324117353726", "30.691678021678754", "В РД существующее на тросу", "ОГС 0,4-9", "КШ №10", "PANTONE 1797 C"], ["61.70198665502988", "30.69167802167863", "В РД существующее на тросу", "ОГС 0,4-9", "КШ №10", "PANTONE 1797 C"], ["61.701607165851634", "30.69168070388772", "В РД существующее на тросу", "ОГС 0,4-9", "КШ №10", "PANTONE 1797 C"], ["61.70129898616987", "30.691688750514757", "В РД существующее на тросу", "ОГС 0,4-9", "КШ №10", "PANTONE 1797 C"], ["61.70129643921763", "30.691216681728154", "В РД существующее на тросу", "ОГС 0,4-9", "КШ №10", "PANTONE 1797 C"], ["61.70129261878887", "30.690621231326844", "В РД существующее на тросу", "ОГС 0,4-9", "КШ №10", "PANTONE 1797 C"], ["61.70129261878887", "30.689736102351926", "В РД существующее на тросу", "ОГС 0,4-9", "КШ №10", "PANTONE 1797 C"], ["61.70249857678219", "30.692074988612656", "", "ОГС 0,4-9", "КШ №10", "PANTONE 307 C"], ["61.70250112359027", "30.692316387423972", "", "ОГС 0,4-9", "КШ №10", "PANTONE 307 C"], ["61.70250239716841", "30.69273481203026", "", "ОГС 0,4-9", "КШ №10", "PANTONE 307 C"], ["61.7025164051307", "30.693048630485265", "", "ОГС 0,4-9", "КШ №10", "PANTONE 307 C"], ["61.702574981948565", "30.69326857162399", "", "ОГС 0,4-9", "КШ №10", "PANTONE 307 C"], ["61.70268449684914", "30.693083499202462", "", "ОГС 0,4-9", "КШ №10", "PANTONE 307 C"], ["61.70280292455098", "30.692828689346054", "", "ОГС 0,4-9", "КШ №10", "PANTONE 307 C"], ["61.70300412297714", "30.69241562915759", "", "ОГС 0,4-9", "КШ №10", "PANTONE 307 C"], ["61.70326262347676", "30.691887233981834", "", "ОГС 0,4-9", "КШ №10", "PANTONE 307 C"]]}, {"name": "ТП №75, 2 этап, лист 02", "rows": [["Широта", "Долгота", "Описание", "Подпись", "Источник питания"], ["61.703881498669965", "30.6904256675754", "", "ОГС 0,4-9", "ТП №75"], ["61.7035886223568", "30.69104794006687", "", "ОГС 0,4-9", "ТП №75"], ["61.70343581622594", "30.691377851775698", "", "ОГС 0,4-9", "ТП №75"], ["61.704510536516686", "30.68938765268653", "", "ОГС 0,4-9", "ТП №75"], ["61.704714270735664", "30.689296457580003", "", "ОГС 0,4-9", "ТП №75"], ["61.70471172405734", "30.688985321334297", "", "ОГС 0,4-9", "ТП №75"], ["61.70490017702379", "30.688572261145982", "", "ОГС 0,4-9", "ТП №75"], ["61.70518794755967", "30.688084099105275", "", "ОГС 0,4-9", "ТП №75"], ["61.70527198622831", "30.687976810744697", "", "ОГС 0,4-9", "ТП №75"], ["61.705564846438264", "30.687327716162994", "", "ОГС 0,4-9", "ТП №75"], ["61.705748201000645", "30.686968300154998", "", "ОГС 0,4-9", "ТП №75"], ["61.705900995632696", "30.68666789274534", "", "ОГС 0,4-9", "ТП №75"], ["61.70616074477097", "30.68637284975371", "", "ОГС 0,4-9", "ТП №75"]]}, {"name": "Без точки подключения", "rows": [["Широта", "Долгота", "Подпись", "Цвет опоры", "Примечание"], ["61.70220042330398", "30.698480560942592", "ОГС 0,4-9", "PANTONE 307 C", "В РД отсутствует точка подключения"], ["61.70193045309708", "30.698174789114884", "ОГС 0,4-9", "PANTONE 307 C", "В РД отсутствует точка подключения"], ["61.70159680740846", "30.697761728926597", "ОГС 0,4-9", "PANTONE 307 C", "В РД отсутствует точка подключения"], ["61.701329378852655", "30.697359397574363", "ОГС 0,4-9", "PANTONE 307 C", "В РД отсутствует точка подключения"], ["61.701316644093", "30.697600796385704", "ОГС 0,4-9", "PANTONE 307 C", "В РД отсутствует точка подключения"], ["61.70116637363638", "30.69732184664815", "ОГС 0,4-9", "PANTONE 307 C", "В РД отсутствует точка подключения"], ["61.70103647824332", "30.69693024413197", "ОГС 0,4-9", "PANTONE 307 C", "В РД отсутствует точка подключения"], ["61.701204578041484", "30.69635625140271", "ОГС 0,4-9", "PANTONE 307 C", "В РД отсутствует точка подключения"], ["61.701502570911956", "30.695385291739324", "ОГС 0,4-9", "PANTONE 307 C", "В РД отсутствует точка подключения"]]}, {"name": "Без ТП", "rows": [["Широта", "Долгота", "Подпись", "Цвет опоры", "Примечание"], ["61.7025504143808", "30.69376815486959", "ОГС 0,4-9", "PANTONE 307 C", "В РД отсутствует точка подключения"], ["61.70240014994339", "30.693687688599145", "ОГС 0,4-9", "PANTONE 307 C", "В РД отсутствует точка подключения"], ["61.70196590707827", "30.694605004082245", "ОГС 0,4-9", "PANTONE 307 C", "В РД отсутствует точка подключения"], ["61.70218621272826", "30.693494569549916", "ОГС 0,4-9", "PANTONE 307 C", "В РД отсутствует точка подключения"], ["61.70211744707061", "30.692920576820885", "ОГС 0,4-9", "PANTONE 307 C", "В РД отсутствует точка подключения"], ["61.70196081328402", "30.693499933968095", "ОГС 0,4-9", "PANTONE 307 C", "В РД отсутствует точка подключения"], ["61.70162207406552", "30.693521391640175", "ОГС 0,4-9", "PANTONE 307 C", "В РД отсутствует точка подключения"]]}, {"name": "ТП №15", "rows": [["Широта", "Долгота", "Подпись", "Цвет опоры"], ["61.708861230560856", "30.67935863567307", "ТП №15", ""], ["61.70892743508722", "30.679165516624067", "ОГС 0,4-9", "PANTONE 307 C"], ["61.70918206606223", "30.67920306755028", "ОГС 0,4-9", "PANTONE 307 C"], ["61.709411232135864", "30.679331813582987", "ОГС 0,4-9", "PANTONE 307 C"], ["61.70964039650137", "30.679487381705854", "ОГС 0,4-9", "PANTONE 307 C"], ["61.709889929082", "30.67963222099262", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71012672855257", "30.679766331443354", "ОГС 0,4-9", "PANTONE 307 C"], ["61.710360979988806", "30.68016866279559", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71056976780707", "30.680200849303773", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71069198440493", "30.68046907020527", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71089058534579", "30.68028131557422", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71119357662188", "30.680259857902115", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71087785452735", "30.680930410155796", "ОГС 0,4-9", "PANTONE 307 C"], ["61.711010254502646", "30.68152586055711", "ОГС 0,4-9", "PANTONE 307 C"], ["61.711000069900464", "30.681912098655236", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71096442379755", "30.682496820220496", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71096442379755", "30.68304399085952", "ОГС 0,4-9", "PANTONE 307 C"], ["61.711058631265516", "30.683725271949303", "ОГС 0,4-9", "PANTONE 307 C"], ["61.711198668833276", "30.68424025608012", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71136925921403", "30.684599672088115", "ОГС 0,4-9", "PANTONE 307 C"], ["61.711537302544116", "30.6848088843913", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71150165705515", "30.685125385055034", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71166206138965", "30.68529168201398", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71176135888269", "30.68507710529277", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71184665261684", "30.685398970374557", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71202233153061", "30.68554380966137", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71215727262113", "30.685366783866375", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71237750517521", "30.68553039861618", "ОГС 0,4-9", "PANTONE 307 C"], ["61.712627015477885", "30.685659144648838", "ОГС 0,4-9", "PANTONE 307 C"], ["61.7129070756965", "30.68577716184542", "ОГС 0,4-9", "PANTONE 307 C"], ["61.713141306225175", "30.685809348353754", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71340608610096", "30.68581471277178", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71372687405082", "30.68582544160786", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71393563900162", "30.686093662509332", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71419786615175", "30.686447714099305", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71427424255568", "30.686799083480263", "ОГС 0,4-9", "PANTONE 307 C"], ["61.7133067938222", "30.68512270284592", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71352065351519", "30.68452188802658", "ОГС 0,4-9", "PANTONE 307 C"], ["61.70853020606783", "30.67922988964008", "ОГС 0,4-9", "PANTONE 307 C"], ["61.70801583840259", "30.6788382871239", "ОГС 0,4-9", "PANTONE 307 C"], ["61.70817116815889", "30.678350125083192", "ОГС 0,4-9", "PANTONE 307 C"], ["61.707524380061216", "30.679192338713868", "ОГС 0,4-9", "PANTONE 307 C"], ["61.70722899199011", "30.679197703131845", "ОГС 0,4-9", "PANTONE 307 C"], ["61.70695906592579", "30.679353271254712", "ОГС 0,4-9", "PANTONE 307 C"], ["61.70660255618335", "30.679701958426655", "ОГС 0,4-9", "PANTONE 307 C"], ["61.706556718907656", "30.679358635672713", "ОГС 0,4-9", "PANTONE 307 C"], ["61.70660000965243", "30.678720269927165", "ОГС 0,4-9", "PANTONE 307 C"], ["61.7063835552563", "30.68028131557384", "ОГС 0,4-9", "PANTONE 307 C"], ["61.705864058514074", "30.68037251068034", "ОГС 0,4-9", "PANTONE 307 C"], ["61.70540057852051", "30.68043688369668", "ОГС 0,4-9", "PANTONE 307 C"], ["61.70537765899978", "30.679836068877368", "ОГС 0,4-9", "PANTONE 307 C"], ["61.70550244285039", "30.67872563434519", "ОГС 0,4-9", "PANTONE 307 C"], ["61.7053267266614", "30.680914316901333", "ОГС 0,4-9", "PANTONE 307 C"], ["61.70520703534626", "30.68076411319652", "ОГС 0,4-9", "PANTONE 307 C"], ["61.71316676555337", "30.68564305139453", "ОГС 0,4-9", "PANTONE 307 C"]]}]}</script>
+<script id="emb" type="application/json">{"ver":"site","files":[]}</script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 "use strict";
@@ -697,11 +723,59 @@ function updUndo(){const a=undoCtl.btn,n=HIST.stack.length;a.classList.toggle("o
 document.addEventListener("keydown",ev=>{ // Ctrl+Z при любой раскладке; в полях ввода работает обычная отмена набора
   if((ev.ctrlKey||ev.metaKey)&&!ev.shiftKey&&!ev.altKey&&ev.code==="KeyZ"&&!/^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName)&&canEdit()){ev.preventDefault();undo()}});
 
-const b64enc=t=>{const b=new TextEncoder().encode(t);let s="";for(let i=0;i<b.length;i+=0x8000)s+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));return btoa(s)};
+const bytesB64=b=>{let s="";for(let i=0;i<b.length;i+=0x8000)s+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));return btoa(s)};
+const b64Bytes=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const b64enc=t=>bytesB64(new TextEncoder().encode(t));
 const b64dec=s=>new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g,"")),c=>c.charCodeAt(0)));
+/* ---------- закрытая карта ----------
+   data/map.json на сайте зашифрован общим паролем: {"enc":"AES-GCM","kdf":"PBKDF2-SHA256","iter":…,"salt":…,"iv":…,"data":…}.
+   Ключ получается из пароля (PBKDF2-SHA256), данные расшифровываются в браузере (AES-GCM): без пароля файл не прочитать,
+   в том числе в репозитории. Пароль запоминается на устройстве. Редактор может сменить пароль кнопкой «Сменить пароль карты»;
+   незашифрованный файл (если пароль ещё не задан) открывается как раньше. */
+const PASS_KEY="karta-sortavala-pass", PASS_ITER=600000;
+const CR={enc:false,pass:"",salt:"",iter:0,key:null};
+let storedPass="";try{storedPass=localStorage.getItem(PASS_KEY)||""}catch(e){}
+const isEnc=o=>!!o&&o.enc==="AES-GCM";
+async function deriveKey(pass,salt,iter){
+  const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(pass),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",hash:"SHA-256",salt:b64Bytes(salt),iterations:iter},base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"])}
+async function tryDecrypt(env,pass){
+  if(!(CR.key&&CR.pass===pass&&CR.salt===env.salt&&CR.iter===env.iter))Object.assign(CR,{key:await deriveKey(pass,env.salt,env.iter),pass,salt:env.salt,iter:env.iter});
+  try{return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:b64Bytes(env.iv)},CR.key,b64Bytes(env.data))))}
+  catch(e){return null}}
+async function encryptText(text,k=CR){const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},k.key,new TextEncoder().encode(text)));
+  return JSON.stringify({enc:"AES-GCM",kdf:"PBKDF2-SHA256",iter:k.iter,salt:k.salt,iv:bytesB64(iv),data:bytesB64(ct)})+"\n"}
+const packDoc=async doc=>CR.enc?encryptText(docText(doc)):docText(doc);
+function keepPass(p){storedPass=p;try{p?localStorage.setItem(PASS_KEY,p):localStorage.removeItem(PASS_KEY)}catch(e){}}
+let unlockP=null,unlockRes=null;
+function askPass(err){ // окно пароля поверх страницы; одновременные запросы ждут один и тот же ввод
+  if(unlockP)return unlockP;const u=$("upass");$("lock").hidden=false;$("umsg").textContent=err||"";$("umsg").classList.toggle("err",!!err);u.disabled=false;u.value="";u.focus();
+  return unlockP=new Promise(r=>unlockRes=r)}
+$("fUnlock").addEventListener("submit",e=>{e.preventDefault();const p=$("upass").value;if(!p||!unlockRes)return;
+  $("umsg").classList.remove("err");$("umsg").textContent="Открываю…";$("upass").disabled=true;const r=unlockRes;unlockP=unlockRes=null;r(p)});
+async function openDoc(obj){ // данные карты из файла; зашифрованные — после ввода подходящего пароля
+  CR.enc=isEnc(obj);$("bForget").hidden=!CR.enc;$("bPass").textContent=CR.enc?"Сменить пароль карты":"Закрыть карту паролем";
+  if(!CR.enc)return obj;
+  let pass=CR.pass||storedPass,typed=false;
+  for(;;){
+    if(pass){const doc=await tryDecrypt(obj,pass);
+      if(doc){if(pass!==storedPass)keepPass(pass);$("lock").hidden=true;return doc}
+      CR.pass="";CR.key=null;keepPass("")}
+    pass=await askPass(!pass?"":typed?"Пароль не подходит.":"Пароль карты сменился. Введите новый.");typed=true}}
+async function setPassword(pass){ // новая соль и ключ; данные с сайта перешифровываются и сохраняются
+  const d=diff();if(d.n||d.lines)throw new Error("сначала сохраните правки на сайт");
+  const rem=await fetchRemote();
+  const doc={updated:new Date().toISOString(),by:ED.login,pts:(rem.doc&&rem.doc.pts)||S.pts.map(clean),lines:(rem.doc&&rem.doc.lines)||S.lines};
+  const salt=bytesB64(crypto.getRandomValues(new Uint8Array(16))),k={key:await deriveKey(pass,salt,PASS_ITER),salt,iter:PASS_ITER};
+  const r=await gh(`/repos/${REPO}/contents/${DATA_PATH}`,{method:"PUT",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({message:`Карта: ${CR.enc?"сменён пароль":"закрыта паролем"} (${ED.login})`,content:b64enc(await encryptText(docText(doc),k)),...(rem.sha?{sha:rem.sha}:{})})});
+  if(!r.ok)throw new Error("GitHub ответил "+r.status);
+  ED.sha=(await r.json()).content.sha;Object.assign(CR,k,{enc:true,pass});keepPass(pass);
+  $("bForget").hidden=false;$("bPass").textContent="Сменить пароль карты";applyDoc(doc)}
 async function gh(url,opt={}){return fetch(API+url,{cache:"no-store",...opt,headers:{Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28",Authorization:"Bearer "+ED.token,...(opt.headers||{})}})}
 function applyDoc(doc){S.pts=doc.pts||[];S.lines=doc.lines||[];ED.updated=doc.updated||"";ED.by=doc.by||"";selTp=null;render();snapshot();histReset();accInfo()}
-async function loadPublic(){const r=await fetch(DATA_PATH+"?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw new Error("нет файла данных ("+r.status+")");return r.json()}
+async function loadPublic(){const r=await fetch(DATA_PATH+"?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw new Error("нет файла данных ("+r.status+")");return openDoc(await r.json())}
 async function fetchRemote(){ // свежая версия прямо из репозитория, минуя кэш сайта
   const m=await gh(`/repos/${REPO}/contents/${DATA_PATH}`);
   if(m.status===404)return {sha:"",doc:null};
@@ -709,7 +783,7 @@ async function fetchRemote(){ // свежая версия прямо из ре�
   const meta=await m.json();let text;
   if(meta.content&&meta.encoding==="base64")text=b64dec(meta.content);
   else text=await (await gh(`/repos/${REPO}/git/blobs/${meta.sha}`,{headers:{Accept:"application/vnd.github.raw+json"}})).text();
-  return {sha:meta.sha,doc:JSON.parse(text)}}
+  return {sha:meta.sha,doc:await openDoc(JSON.parse(text))}}
 function docText(doc){ // по одной точке в строке, чтобы в истории GitHub было видно, что изменилось
   return `{"updated":${JSON.stringify(doc.updated)},"by":${JSON.stringify(doc.by)},\n"pts":[\n${doc.pts.map(p=>JSON.stringify(p)).join(",\n")}\n],\n"lines":[\n${doc.lines.map(l=>JSON.stringify(l)).join(",\n")}\n]}\n`}
 async function login(token){
@@ -731,7 +805,7 @@ async function saveRemote(){
   try{for(let attempt=0;;attempt++){
     const doc={updated:new Date().toISOString(),by:ED.login,pts:S.pts.map(clean),lines:S.lines};
     const r=await gh(`/repos/${REPO}/contents/${DATA_PATH}`,{method:"PUT",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({message:`Карта: изменено ${d.changed.length}, удалено ${d.deleted.length}${d.lines?", линии ЛЭП":""} (${ED.login})`,content:b64enc(docText(doc)),...(ED.sha?{sha:ED.sha}:{})})});
+      body:JSON.stringify({message:`Карта: изменено ${d.changed.length}, удалено ${d.deleted.length}${d.lines?", линии ЛЭП":""} (${ED.login})`,content:b64enc(await packDoc(doc)),...(ED.sha?{sha:ED.sha}:{})})});
     if(r.ok){ED.sha=(await r.json()).content.sha;ED.updated=doc.updated;ED.by=doc.by;snapshot();render();if(attempt)histReset();accInfo();
       msg(`Сохранено. Зрители увидят изменения в течение нескольких минут.${attempt?" Правки другого редактора, сохранённые раньше, тоже учтены.":""}`);return}
     if((r.status===409||r.status===422)&&attempt<2){
@@ -748,7 +822,8 @@ async function saveRemote(){
 }
 async function refreshView(first){
   try{applyDoc(await loadPublic());if(first)fit();if(first)msg(`На карте ${S.pts.filter(p=>p.kind==="pole").length} опор и ${S.pts.filter(p=>p.kind==="tp").length} ТП.`)}
-  catch(e){if(first){loadEmbedded();render();histReset();fit();msg("Не удалось загрузить актуальные данные, показаны данные из файла карты.",true)}}
+  catch(e){if(first){loadEmbedded();render();histReset();fit();
+    msg(EMB.files.length?"Не удалось загрузить актуальные данные, показаны данные из файла карты.":"Не удалось загрузить карту ("+e.message+"). Обновите страницу.",true)}}
 }
 $("bLogin").onclick=()=>{$("fLogin").hidden=false;$("bLogin").hidden=true;$("tok").focus()};
 $("bCancel").onclick=()=>{$("fLogin").hidden=true;$("bLogin").hidden=false};
@@ -756,6 +831,16 @@ $("fLogin").addEventListener("submit",async e=>{e.preventDefault();const t=$("to
   msg("Проверяю доступ…");try{await login(t);$("tok").value="";$("fLogin").hidden=true;$("bLogin").hidden=false;msg("Вы вошли как редактор. Правьте карту и нажмите «Сохранить на сайт».")}
   catch(err){ED.token="";msg("Войти не удалось: "+err.message+".",true)}});
 $("bSave").onclick=saveRemote;
+$("bPass").onclick=()=>{$("fPass").hidden=false;$("bPass").hidden=true;$("np1").focus()};
+$("bPassCancel").onclick=()=>{$("fPass").hidden=true;$("bPass").hidden=false;$("np1").value=$("np2").value=""};
+$("fPass").addEventListener("submit",async e=>{e.preventDefault();const a=$("np1").value,b=$("np2").value;
+  if(a.length<8)return msg("Пароль карты должен быть не короче 8 знаков.",true);
+  if(a!==b)return msg("Пароли не совпадают.",true);
+  msg("Меняю пароль карты…");
+  try{const was=CR.enc;await setPassword(a);$("bPassCancel").onclick();
+    msg(was?"Пароль карты изменён. Сообщите новый пароль всем, кто смотрит карту: старый больше не подходит.":"Карта закрыта паролем. Сообщите пароль всем, кто смотрит карту.")}
+  catch(err){msg("Не удалось сменить пароль: "+err.message+".",true)}});
+$("bForget").onclick=()=>{keepPass("");location.reload()};
 $("bReload").onclick=async()=>{if(diff().n&&$("bReload").dataset.armed!=="1"){$("bReload").dataset.armed="1";$("bReload").textContent="Есть несохранённые правки. Сбросить их?";
     setTimeout(()=>{$("bReload").dataset.armed="";$("bReload").textContent="Обновить"},4000);return}
   $("bReload").dataset.armed="";$("bReload").textContent="Обновить";
