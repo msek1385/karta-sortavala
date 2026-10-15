@@ -369,10 +369,7 @@ function render(){
   stats();tpList();save();
 }
 function stats(){
-  const poles=S.pts.filter(p=>p.kind==="pole"&&p.lamp!==false), other=S.pts.filter(p=>p.kind==="pole"&&p.lamp===false);
-  const ex=poles.filter(p=>p.link&&!p.linkAuto).length, au=poles.filter(p=>p.linkAuto).length;
-  const rows=[["Опор освещения",poles.length],["  привязано по данным",ex],["  привязано по близости",au],["  без привязки",poles.length-ex-au],
-    ["ТП / КТП",S.pts.filter(p=>p.kind==="tp").length],["Прочих опор ЛЭП (OSM)",other.length],["Линий ЛЭП (OSM)",S.lines.length]];
+  const rows=[["Опоры освещения",S.pts.filter(p=>p.kind==="pole"&&p.lamp!==false).length],["ТП / КТП",S.pts.filter(p=>p.kind==="tp").length]];
   $("stats").innerHTML=rows.map(([k,v])=>`<span>${esc(k).replace(/^  /,"&nbsp;&nbsp;&nbsp;")}</span><b>${v}</b>`).join("");
 }
 function tpList(){
