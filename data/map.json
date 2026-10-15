@@ -1,4 +1,4 @@
-{"updated":"2026-10-15T14:13:15.118Z","by":"msek1385",
+{"updated":"2026-10-15T14:13:54.000Z","by":"линия опор 31–32 ТП №15",
 "pts":[
 {"id":"fmv8gkjkei6sw1","kind":"tp","name":"ТП №75","lat":61.7038816,"lon":30.6886654,"tp":"","note":"","src":"ул. Горького, ул. Садовая","row":2},
 {"id":"fmv8gkjkfwlugv","kind":"pole","name":"","lat":61.7039185,"lon":30.6888102,"tp":"ТП №75","note":"","src":"ул. Горького, ул. Садовая","row":3,"lamp":true,"ptype":"ОГС 0,4-9"},
@@ -190,7 +190,7 @@
 {"id":"fmv9lznr8jc167","kind":"pole","name":"","lat":61.7123775,"lon":30.6855304,"tp":"ТП №15","note":"","src":"ТП №15","row":29,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C"},
 {"id":"fmv9lznr8ej1y8","kind":"pole","name":"","lat":61.712627,"lon":30.6856591,"tp":"ТП №15","note":"","src":"ТП №15","row":30,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C"},
 {"id":"fmv9lznr8zjq50","kind":"pole","name":"","lat":61.7129071,"lon":30.6857772,"tp":"ТП №15","note":"","src":"ТП №15","row":31,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C"},
-{"id":"fmv9lznr8me6wf","kind":"pole","name":"","lat":61.7131413,"lon":30.6858093,"tp":"ТП №15","note":"","src":"ТП №15","row":32,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C","from":"fmv9lznr85nf0s","via":[]},
+{"id":"fmv9lznr8me6wf","kind":"pole","name":"","lat":61.7131413,"lon":30.6858093,"tp":"ТП №15","note":"","src":"ТП №15","row":32,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C","from":"fmv9lznr85nf0s","via":[],"ext":[{"to":"fmv9lznr8zjq50"}]},
 {"id":"fmv9lznr85nf0s","kind":"pole","name":"","lat":61.713421,"lon":30.6858149,"tp":"ТП №15","note":"","src":"ТП №15","row":33,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C","from":"none"},
 {"id":"fmv9lznr8jpotf","kind":"pole","name":"","lat":61.7137269,"lon":30.6858254,"tp":"ТП №15","note":"","src":"ТП №15","row":34,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C"},
 {"id":"fmv9lznr8j17be","kind":"pole","name":"","lat":61.7139356,"lon":30.6860937,"tp":"ТП №15","note":"","src":"ТП №15","row":35,"lamp":true,"ptype":"ОГС 0,4-9","color":"PANTONE 307 C"},
