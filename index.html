@@ -395,12 +395,14 @@ function polePopup(p){
    <div class="view-only">Источник питания: ${tpTxt}</div>
    ${p.name?`<div class="view-only">Номер опоры: <b>${esc(p.name)}</b></div>`:""}
    ${p.joint?`<div class="view-only">Совместная подвеска: <b>${esc(p.joint)}</b></div>`:""}
+   ${p.crown?`<div class="view-only">Требуется кронирование: <b>${esc(p.crown)}</b></div>`:""}
    ${p.note?`<div class="view-only">Примечание: ${esc(p.note).replace(/\n/g,"<br>")}</div>`:""}
    <div class="edit-only">
      <label class="pp-k">Тип опоры<select class="pt"><option value="">— не указан —</option>${types.map(t=>`<option${t===p.ptype?" selected":""}>${esc(t)}</option>`).join("")}</select></label>
      <label class="pp-k">Источник питания<select class="sel"><option value="">${p.linkAuto?"— не указан (сейчас ближайшая: "+esc(tpLabel(S.pts.find(t=>t.id===p.link)))+") —":"— не указан —"}</option>${tps.map(t=>`<option value="${esc(t.id)}"${t.id===cur?" selected":""}>${esc(tpLabel(t))}</option>`).join("")}</select></label>
      <label class="pp-k">Номер опоры<input type="text" class="nm" value="${esc(p.name||"")}"></label>
      <label class="pp-k">Совместная подвеска<input type="text" class="js" value="${esc(p.joint||"")}"></label>
+     <label class="pp-k">Требуется кронирование<select class="cr"><option value="">— не указано —</option>${["да","нет"].map(v=>`<option${v===p.crown?" selected":""}>${v}</option>`).join("")}</select></label>
      <label class="pp-k">Примечание<textarea class="nt">${esc(p.note||"")}</textarea></label>
    </div>
    <div class="pp-k">${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}</div>
@@ -410,6 +412,7 @@ function polePopup(p){
    </div>`;
   div.querySelector(".ok").onclick=()=>{p.name=div.querySelector(".nm").value.trim();p.ptype=div.querySelector(".pt").value;p.note=div.querySelector(".nt").value.trim();
     const j=div.querySelector(".js").value.trim();if(j)p.joint=j;else delete p.joint; // пустое поле не храним
+    const k=div.querySelector(".cr").value;if(k)p.crown=k;else delete p.crown;
     const v=div.querySelector(".sel").value;p.tp=v?tpLabel(S.pts.find(t=>t.id===v)):"";
     p.lamp=div.querySelector(".lamp").checked;map.closePopup();render()};
   div.querySelector(".ln").title="Провести линию к этой опоре: затем щёлкните опору или ТП, от которой она идёт";
@@ -478,7 +481,8 @@ const ALIAS={
   lon:["долгота","lon","lng","long","longitude","x","долг","e"],
   tp:["тп","ктп","тпктп","питание","подключенак","подключена","запитанаот","источник","feeder","tp","substation","фидерттп","трансформаторнаяподстанция"],
   note:["примечание","комментарий","note","comment","описание","description","улица","адрес"],
-  joint:["совместнаяподвеска","совместная","подвеска"]
+  joint:["совместнаяподвеска","совместная","подвеска"],
+  crown:["требуетсякронирование","кронирование"]
 };
 function pickCols(headers){const h=headers.map(norm),out={};
   for(const [k,al] of Object.entries(ALIAS)){let i=h.findIndex(x=>al.includes(x));if(i<0)i=h.findIndex(x=>al.some(a=>a.length>2&&x.startsWith(a)));if(i>=0)out[k]=i}
@@ -501,7 +505,8 @@ function importRows(rows,src){
     if(!tp&&!ptype&&POLE_TYPE.test(name)){ptype=name;name=""}
     const p={id:newId("f"),kind:tp?"tp":"pole",name,lat:+lat.toFixed(7),lon:+lon.toFixed(7),
       tp:!tp&&c.tp!=null?String(r[c.tp]??"").trim():"",note:c.note!=null?String(r[c.note]??"").trim():"",src:src||"файл",row:h+i+2};
-    if(!tp){p.lamp=true;p.ptype=ptype;const j=c.joint!=null?String(r[c.joint]??"").trim():"";if(j)p.joint=j}
+    if(!tp){p.lamp=true;p.ptype=ptype;const j=c.joint!=null?String(r[c.joint]??"").trim():"";if(j)p.joint=j;
+      const k=c.crown!=null?String(r[c.crown]??"").trim().toLowerCase():"";if(/^(да|д|yes|1|\+)$/.test(k))p.crown="да";else if(/^(нет|н|no|0|-)$/.test(k))p.crown="нет"}
     added.push(p)});
   const tps=added.filter(p=>p.kind==="tp");
   if(tps.length===1)for(const p of added)if(p.kind==="pole"&&!p.tp)p.tp=tpLabel(tps[0]);
@@ -561,7 +566,7 @@ function fit(){const p=S.pts.map(p=>[p.lat,p.lon]);if(p.length)map.fitBounds(L.l
 /* ---------- экспорт ---------- */
 function download(name,text,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
 const tpName=id=>{const t=S.pts.find(x=>x.id===id);return t?tpLabel(t):""};
-function rowsOut(){return S.pts.map(p=>({тип:p.kind==="tp"?"ТП":(p.lamp===false?"Опора ЛЭП":"Опора освещения"),номер:p.kind==="tp"?tpLabel(p):(p.name||""),тип_опоры:p.ptype||"",совместная_подвеска:p.joint||"",
+function rowsOut(){return S.pts.map(p=>({тип:p.kind==="tp"?"ТП":(p.lamp===false?"Опора ЛЭП":"Опора освещения"),номер:p.kind==="tp"?tpLabel(p):(p.name||""),тип_опоры:p.ptype||"",совместная_подвеска:p.joint||"",требуется_кронирование:p.crown||"",
   широта:p.lat,долгота:p.lon,тп:p.kind==="pole"?tpName(p.link):"",привязка:p.kind!=="pole"?"":p.link?(p.linkAuto?"по близости":"по данным"):"нет",
   расстояние_до_тп_м:p.linkDist!=null?Math.round(p.linkDist):"",источник:p.src,примечание:p.note||""}))}
 $("bCsv").onclick=()=>{const r=rowsOut();if(!r.length)return msg("Нечего выгружать.",true);const h=Object.keys(r[0]);
