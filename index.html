@@ -164,7 +164,10 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
     <h2>Слои</h2>
     <label class="chk"><input type="checkbox" id="cPoles" checked> Опоры освещения</label>
     <label class="chk"><input type="checkbox" id="cTp" checked> ТП / КТП</label>
-    <label class="chk" id="lHeat" hidden><input type="checkbox" id="cHeat" checked> Тепловые сети</label>
+    <label class="chk net-l" data-net="heat" hidden><input type="checkbox" checked> Тепловые сети</label>
+    <label class="chk net-l" data-net="water" hidden><input type="checkbox"> Водопровод</label>
+    <label class="chk net-l" data-net="sewer" hidden><input type="checkbox"> Канализация</label>
+    <label class="chk net-l" data-net="storm" hidden><input type="checkbox"> Ливневая канализация и дренаж</label>
     <div hidden><!-- скрытые настройки: связь опор с ТП (трасса строится как раньше), слои OSM -->
     <label class="chk"><input type="checkbox" id="cOtherPoles"> Прочие опоры ЛЭП из OSM (без светильника)</label>
     <label class="chk" for="sLinks">Связь опор с ТП
@@ -201,8 +204,12 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
       <span class="lg-dot" style="background:#006BA6;border-color:#00456b"></span><span>Опора освещения</span>
       <span class="lg-sq"></span><span>ТП / КТП</span>
       <span class="lg-l" style="border-color:#006BA6"></span><span>Линия электропередачи</span>
-      <span class="lg-l heat-lg" style="border-color:#D9480F;border-top-width:3px" hidden></span><span class="heat-lg" hidden>Тепловая сеть</span>
-      <span class="lg-ld heat-lg" style="border-color:#D9480F" hidden></span><span class="heat-lg" hidden>Тепловая сеть по топоплану</span>
+      <span class="lg-l net-lg" data-net="heat" style="border-color:#D9480F;border-top-width:3px" hidden></span><span class="net-lg" data-net="heat" hidden>Тепловая сеть</span>
+      <span class="lg-ld net-lg" data-net="heat" style="border-color:#D9480F" hidden></span><span class="net-lg" data-net="heat" hidden>Тепловая сеть по топоплану</span>
+      <span class="lg-l net-lg" data-net="water" style="border-color:#0C8599" hidden></span><span class="net-lg" data-net="water" hidden>Водопровод</span>
+      <span class="lg-l net-lg" data-net="sewer" style="border-color:#7F4F24" hidden></span><span class="net-lg" data-net="sewer" hidden>Канализация</span>
+      <span class="lg-l net-lg" data-net="storm" style="border-color:#5C940D" hidden></span><span class="net-lg" data-net="storm" hidden>Ливневая канализация</span>
+      <span class="lg-ld net-lg" data-net="storm" style="border-color:#5C940D" hidden></span><span class="net-lg" data-net="storm" hidden>Дренаж</span>
     </div>
   </section>
   <section>
@@ -252,7 +259,7 @@ for(const l of [yMap,ySat,...yHyb.getLayers()]){l.on("tileload",()=>yaOk++);l.on
     osm.addTo(map);map.fire("baselayerchange",{layer:osm,name:"OpenStreetMap",auto:true});yaErr=-1e9;
     msg("Яндекс.Карты не загрузились, включена подложка OpenStreetMap. Переключить обратно можно кнопкой слоёв слева вверху.",true)}})}
 L.control.scale({imperial:false}).addTo(map);
-const gHeat=L.layerGroup().addTo(map); // тепловые сети: под опорами и линиями
+const gNets=L.layerGroup().addTo(map); // инженерные сети: под опорами и линиями
 const gPower=L.layerGroup().addTo(map), gLinks=L.layerGroup().addTo(map), gPoles=L.layerGroup().addTo(map), gTp=L.layerGroup().addTo(map), gHandles=L.layerGroup().addTo(map);
 
 const $=id=>document.getElementById(id);
@@ -678,7 +685,11 @@ map.on("click",e=>{if(selEdge&&!mode)return clearEdge();
   if(mode==="pole")p.lamp=true;S.pts.push(p);render()});
 
 for(const id of ["cPoles","cOtherPoles","cTp","sLinks","cPower","cAuto","nRad"])$(id).addEventListener("change",render);
-$("cHeat").addEventListener("change",()=>{drawNets();render()});
+// Включённые слои сетей запоминаются в браузере; по умолчанию включена только теплосеть, чтобы карта освещения оставалась читаемой
+const NETS_KEY="karta-sortavala-nets";
+try{const st=JSON.parse(localStorage.getItem(NETS_KEY)||"null");if(st)for(const e of document.querySelectorAll(".net-l"))if(e.dataset.net in st)e.querySelector("input").checked=!!st[e.dataset.net]}catch(e){}
+for(const l of document.querySelectorAll(".net-l input"))l.addEventListener("change",()=>{drawNets();render();
+  try{localStorage.setItem(NETS_KEY,JSON.stringify(Object.fromEntries([...document.querySelectorAll(".net-l")].map(e=>[e.dataset.net,e.querySelector("input").checked]))))}catch(e){}});
 $("bOsm").onclick=loadOsm;
 
 /* Данные, встроенные в файл карты (для работы с файлом на своём компьютере). */
@@ -781,7 +792,7 @@ async function openDoc(obj){ // данные карты из файла; заш�
     pass=await askPass(!pass?"":typed?"Пароль не подходит.":"Пароль карты сменился. Введите новый.");typed=true}}
 async function setPassword(pass){ // новая соль и ключ; данные с сайта перешифровываются и сохраняются
   const d=diff();if(d.n||d.lines)throw new Error("сначала сохраните правки на сайт");
-  const rem=await fetchRemote(), nets=await fetchNets(); // тепловые сети расшифровываем, пока ключ ещё старый
+  const rem=await fetchRemote(), nets=await fetchNets(); // инженерные сети расшифровываем, пока ключ ещё старый
   const doc={updated:new Date().toISOString(),by:ED.login,pts:(rem.doc&&rem.doc.pts)||S.pts.map(clean),lines:(rem.doc&&rem.doc.lines)||S.lines};
   const salt=bytesB64(crypto.getRandomValues(new Uint8Array(16))),k={key:await deriveKey(pass,salt,PASS_ITER),salt,iter:PASS_ITER};
   const r=await gh(`/repos/${REPO}/contents/${DATA_PATH}`,{method:"PUT",headers:{"Content-Type":"application/json"},
@@ -790,8 +801,8 @@ async function setPassword(pass){ // новая соль и ключ; данны
   ED.sha=(await r.json()).content.sha;Object.assign(CR,k,{enc:true,pass});keepPass(pass);
   $("bForget").hidden=false;$("bPass").textContent="Сменить пароль карты";applyDoc(doc);
   if(nets)await putNets(nets,k)}
-let netsPending=null; // расшифрованные тепловые сети, если после смены пароля их не удалось сохранить
-async function fetchNets(){ // {sha,text}: тепловые сети из хранилища в открытом виде; null — файла нет
+let netsPending=null; // расшифрованные инженерные сети, если после смены пароля их не удалось сохранить
+async function fetchNets(){ // {sha,text}: инженерные сети из хранилища в открытом виде; null — файла нет
   const m=await gh(`/repos/${REPO}/contents/${NETS_PATH}`);
   if(m.status===404)return netsPending;if(!m.ok)throw new Error("GitHub ответил "+m.status);
   const meta=await m.json();if(netsPending)return {...netsPending,sha:meta.sha};
@@ -800,16 +811,22 @@ async function fetchNets(){ // {sha,text}: тепловые сети из хра
 async function putNets(nets,k){
   for(let attempt=0;;attempt++){
     const r=await gh(`/repos/${REPO}/contents/${NETS_PATH}`,{method:"PUT",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({message:`Тепловые сети: перешифрованы новым паролем (${ED.login})`,content:b64enc(await encryptText(nets.text,k)),...(nets.sha?{sha:nets.sha}:{})})});
+      body:JSON.stringify({message:`Инженерные сети: перешифрованы новым паролем (${ED.login})`,content:b64enc(await encryptText(nets.text,k)),...(nets.sha?{sha:nets.sha}:{})})});
     if(r.ok){netsPending=null;return}
     if((r.status===409||r.status===422)&&attempt<2){const m=await gh(`/repos/${REPO}/contents/${NETS_PATH}`);if(m.ok)nets.sha=(await m.json()).sha;continue}
-    netsPending=nets;throw new Error("пароль карты изменён, но тепловые сети перешифровать не удалось (GitHub ответил "+r.status+"). Не закрывая страницу, смените пароль ещё раз")}}
+    netsPending=nets;throw new Error("пароль карты изменён, но инженерные сети перешифровать не удалось (GitHub ответил "+r.status+"). Не закрывая страницу, смените пароль ещё раз")}}
 async function gh(url,opt={}){return fetch(API+url,{cache:"no-store",...opt,headers:{Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28",Authorization:"Bearer "+ED.token,...(opt.headers||{})}})}
-/* ---------- тепловые сети ----------
-   data/nets.json: трассы теплосети из чертежа Н13-251 (слои «-Теплосеть_КИС» и «32_Теплосеть»; из топоплана — только участки,
-   которых нет в обследовании), пересчитанные из местной системы координат чертежа по опорам и ТП карты (точность около 2–3 м).
+/* ---------- инженерные сети ----------
+   data/nets.json: трассы сетей из чертежа Н13-251, пересчитанные из местной системы координат чертежа по опорам и ТП карты
+   (точность около 2–3 м): heat — теплосеть (слой «-Теплосеть_КИС»; из «32_Теплосеть» — только участки, которых нет в обследовании),
+   water — «31_Водопровод», sewer и storm — «30_Канализация». У линии t — тип, c — точки, a — подписи труб [м от начала линии, текст, длина].
    Файл зашифрован тем же паролем, что и карта; при смене пароля перешифровывается вместе с ней. */
-const NETS_PATH="data/nets.json", HEAT_COLOR="#D9480F";
+const NETS_PATH="data/nets.json";
+const NET_LAYERS={ // цвет слоя; типы линий: название, пунктир, слой чертежа
+  heat:{color:"#D9480F",w:3,types:{k:["Тепловая сеть","","-Теплосеть_КИС"],k2:["Тепловая сеть наземная","","-Теплосеть_КИС"],p:["Тепловая сеть по топоплану","7 6","32_Теплосеть"]}},
+  water:{color:"#0C8599",w:2.5,types:{v:["Водопровод"],vn:["Водопровод наземный"],vp:["Водопровод питьевой"],vpn:["Водопровод питьевой наземный"]},layer:"31_Водопровод"},
+  sewer:{color:"#7F4F24",w:2.5,types:{kb:["Канализация бытовая"],k:["Канализация"],kn:["Канализация напорная"],kuch:["Канализация условно чистых вод"]},layer:"30_Канализация"},
+  storm:{color:"#5C940D",w:2.5,types:{kl:["Ливневая канализация"],kln:["Ливневая канализация наземная"],d:["Дренаж","5 5"]},layer:"30_Канализация"}};
 let NETS=null;
 async function openNets(env){ // расшифровка тем же паролем, что и карта; ключ берём готовый, если соль та же
   if(!isEnc(env))return env;if(!CR.pass)throw new Error("карта не открыта паролем");
@@ -817,24 +834,28 @@ async function openNets(env){ // расшифровка тем же пароле
   return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:b64Bytes(env.iv)},key,b64Bytes(env.data))))}
 async function loadNets(){if(!SITE||NETS)return;
   try{const r=await fetch(NETS_PATH+"?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;
-    NETS=await openNets(await r.json());$("lHeat").hidden=false;for(const e of document.querySelectorAll(".heat-lg"))e.hidden=false;drawNets();render()}
-  catch(e){console.warn("Тепловые сети не загрузились:",e)}}
-function drawNets(){gHeat.clearLayers();if(!NETS||!$("cHeat").checked)return;
-  for(const h of NETS.heat||[]){const topo=h.t==="p";
-    const l=L.polyline(h.c,{color:HEAT_COLOR,weight:topo?2.5:3,opacity:.9,dashArray:topo?"7 6":null});
-    l.on("click",e=>{if(mode)return;L.popup().setLatLng(e.latlng).setContent(heatPopup(h,e.latlng)).openOn(map)});
-    l.addTo(gHeat)}}
+    NETS=await openNets(await r.json());
+    for(const e of document.querySelectorAll(".net-l,.net-lg"))if(NETS[e.dataset.net]&&NETS[e.dataset.net].length)e.hidden=false;
+    drawNets();render()}
+  catch(e){console.warn("Инженерные сети не загрузились:",e)}}
+const netOn=k=>{const e=document.querySelector(`.net-l[data-net="${k}"] input`);return !!e&&e.checked};
+function drawNets(){gNets.clearLayers();if(!NETS)return;
+  for(const [k,cfg] of Object.entries(NET_LAYERS)){if(!netOn(k))continue;
+    for(const h of NETS[k]||[]){const ty=cfg.types[h.t]||[h.t];
+      const l=L.polyline(h.c,{color:cfg.color,weight:ty[1]?cfg.w-.5:cfg.w,opacity:.9,dashArray:ty[1]||null});
+      l.on("click",e=>{if(mode)return;L.popup().setLatLng(e.latlng).setContent(netPopup(k,h,e.latlng)).openOn(map)});
+      l.addTo(gNets)}}}
 function arcPos(c,ll){ // положение точки вдоль линии, м от её начала
   const k=Math.cos(ll.lat*Math.PI/180)*111320, xy=q=>[q[1]*k,q[0]*110574], P=xy([ll.lat,ll.lng]);let s=0,best=Infinity,at=0;
   for(let i=1;i<c.length;i++){const A=xy(c[i-1]),B=xy(c[i]),dx=B[0]-A[0],dy=B[1]-A[1],L2=dx*dx+dy*dy;
     const t=L2?Math.max(0,Math.min(1,((P[0]-A[0])*dx+(P[1]-A[1])*dy)/L2)):0,d=Math.hypot(A[0]+t*dx-P[0],A[1]+t*dy-P[1]);
     if(d<best){best=d;at=s+t*Math.sqrt(L2)}s+=Math.sqrt(L2)}
   return at}
-function heatPopup(h,ll){ // подпись трубы из чертежа, ближайшая к месту щелчка на этой линии
-  let rows="";
+function netPopup(k,h,ll){ // название сети и подпись трубы из чертежа, ближайшая к месту щелчка на этой линии
+  const cfg=NET_LAYERS[k], ty=cfg.types[h.t]||[h.t];let rows="";
   if(h.a&&h.a.length){const pos=arcPos(h.c,ll);let b=h.a[0];for(const a of h.a)if(Math.abs(a[0]-pos)<Math.abs(b[0]-pos))b=a;
     rows=h.a.filter(a=>Math.abs(a[0]-b[0])<=3).map(a=>`<div><b>${esc(a[1])}</b>${a[2]?`, длина участка ${esc(a[2].replace(".",","))} м`:""}</div>`).join("")}
-  return `<div class="pp-h">Тепловая сеть</div>${rows}<div class="pp-k">${h.t==="p"?"По топографическому плану (слой «32_Теплосеть»)":"По обследованию (слой «-Теплосеть_КИС»)"}, чертёж Н13-251. Положение на карте ±2–3 м.</div>`}
+  return `<div class="pp-h">${esc(ty[0])}</div>${rows}<div class="pp-k">Слой «${esc(ty[2]||cfg.layer)}» чертежа Н13-251. Положение на карте ±2–3 м.</div>`}
 function applyDoc(doc){S.pts=doc.pts||[];S.lines=doc.lines||[];ED.updated=doc.updated||"";ED.by=doc.by||"";selTp=null;render();snapshot();histReset();accInfo()}
 async function loadPublic(){const r=await fetch(DATA_PATH+"?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw new Error("нет файла данных ("+r.status+")");return openDoc(await r.json())}
 async function fetchRemote(){ // свежая версия прямо из репозитория, минуя кэш сайта
