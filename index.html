@@ -168,6 +168,7 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
     <label class="chk net-l" data-net="water" hidden><input type="checkbox"> Водопровод</label>
     <label class="chk net-l" data-net="sewer" hidden><input type="checkbox"> Канализация</label>
     <label class="chk net-l" data-net="storm" hidden><input type="checkbox"> Ливневая канализация и дренаж</label>
+    <label class="chk net-l" data-net="ts3" hidden><input type="checkbox"> Проект теплосети ТС-3</label>
     <div hidden><!-- скрытые настройки: связь опор с ТП (трасса строится как раньше), слои OSM -->
     <label class="chk"><input type="checkbox" id="cOtherPoles"> Прочие опоры ЛЭП из OSM (без светильника)</label>
     <label class="chk" for="sLinks">Связь опор с ТП
@@ -210,6 +211,9 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
       <span class="lg-l net-lg" data-net="sewer" style="border-color:#7F4F24" hidden></span><span class="net-lg" data-net="sewer" hidden>Канализация</span>
       <span class="lg-l net-lg" data-net="storm" style="border-color:#5C940D" hidden></span><span class="net-lg" data-net="storm" hidden>Ливневая канализация</span>
       <span class="lg-ld net-lg" data-net="storm" style="border-color:#5C940D" hidden></span><span class="net-lg" data-net="storm" hidden>Дренаж</span>
+      <span class="lg-l net-lg" data-net="ts3" style="border-color:#AE3EC9;border-top-width:4px" hidden></span><span class="net-lg" data-net="ts3" hidden>Проект теплосети ТС-3</span>
+      <span class="lg-dot net-lg" data-net="ts3" style="background:#fff;border-color:#AE3EC9" hidden></span><span class="net-lg" data-net="ts3" hidden>Столб освещения: демонтировать (ТС-3)</span>
+      <span class="lg-dot net-lg" data-net="ts3" style="background:#AE3EC9;border-color:#7a2a8d" hidden></span><span class="net-lg" data-net="ts3" hidden>Столб освещения: установить (ТС-3)</span>
     </div>
   </section>
   <section>
@@ -820,13 +824,18 @@ async function gh(url,opt={}){return fetch(API+url,{cache:"no-store",...opt,head
    data/nets.json: трассы сетей из чертежа Н13-251, пересчитанные из местной системы координат чертежа по опорам и ТП карты
    (точность около 2–3 м): heat — теплосеть (слой «-Теплосеть_КИС»; из «32_Теплосеть» — только участки, которых нет в обследовании),
    water — «31_Водопровод», sewer и storm — «30_Канализация». У линии t — тип, c — точки, a — подписи труб [м от начала линии, текст, длина].
+   ts3 — оси проектных труб из чертежа «ТС-3 РП План ТС Часть-2» (та же система координат; t:"e" — по существующей теплосети, "n" — новая трасса),
+   ts3p — переносимые по этому проекту столбы освещения: o — старое место, n — новое, d — сдвиг, м, adr — ближайший адрес на чертеже.
    Файл зашифрован тем же паролем, что и карта; при смене пароля перешифровывается вместе с ней. */
 const NETS_PATH="data/nets.json";
 const NET_LAYERS={ // цвет слоя; типы линий: название, пунктир, слой чертежа
   heat:{color:"#D9480F",w:3,types:{k:["Тепловая сеть","","-Теплосеть_КИС"],k2:["Тепловая сеть наземная","","-Теплосеть_КИС"],p:["Тепловая сеть по топоплану","7 6","32_Теплосеть"]}},
   water:{color:"#0C8599",w:2.5,types:{v:["Водопровод"],vn:["Водопровод наземный"],vp:["Водопровод питьевой"],vpn:["Водопровод питьевой наземный"]},layer:"31_Водопровод"},
   sewer:{color:"#7F4F24",w:2.5,types:{kb:["Канализация бытовая"],k:["Канализация"],kn:["Канализация напорная"],kuch:["Канализация условно чистых вод"]},layer:"30_Канализация"},
-  storm:{color:"#5C940D",w:2.5,types:{kl:["Ливневая канализация"],kln:["Ливневая канализация наземная"],d:["Дренаж","5 5"]},layer:"30_Канализация"}};
+  storm:{color:"#5C940D",w:2.5,types:{kl:["Ливневая канализация"],kln:["Ливневая канализация наземная"],d:["Дренаж","5 5"]},layer:"30_Канализация"},
+  ts3:{color:"#AE3EC9",w:3.5,types:{e:["Проект теплосети ТС-3","","","Идёт по трассе существующей теплосети."],n:["Проект теплосети ТС-3","","","Новая трасса: в существующей теплосети её нет."]},
+    doc:"«ТС-3 РП План ТС Часть-2»",about:"Реконструкция тепловых сетей, часть 2 (ГИПРОНИИГАЗ, шифр 49/12-К-ТС2-ТС-3)."}};
+const TS3_PT="#AE3EC9";
 let NETS=null;
 async function openNets(env){ // расшифровка тем же паролем, что и карта; ключ берём готовый, если соль та же
   if(!isEnc(env))return env;if(!CR.pass)throw new Error("карта не открыта паролем");
@@ -844,7 +853,15 @@ function drawNets(){gNets.clearLayers();if(!NETS)return;
     for(const h of NETS[k]||[]){const ty=cfg.types[h.t]||[h.t];
       const l=L.polyline(h.c,{color:cfg.color,weight:ty[1]?cfg.w-.5:cfg.w,opacity:.9,dashArray:ty[1]||null});
       l.on("click",e=>{if(mode)return;L.popup().setLatLng(e.latlng).setContent(netPopup(k,h,e.latlng)).openOn(map)});
-      l.addTo(gNets)}}}
+      l.addTo(gNets)}}
+  if(netOn("ts3"))for(const q of NETS.ts3p||[]){ // старое и новое место переносимого столба освещения
+    L.polyline([q.o,q.n],{color:TS3_PT,weight:1.5,dashArray:"3 3",interactive:false}).addTo(gNets);
+    for(const [ll,old] of [[q.o,true],[q.n,false]])
+      L.circleMarker(ll,{radius:6,color:TS3_PT,weight:2.5,fillColor:old?"#fff":TS3_PT,fillOpacity:1})
+        .on("click",e=>{if(mode)return;L.popup().setLatLng(ll).setContent(`<div class="pp-h">${old?"Демонтировать столб освещения":"Установить столб освещения"}</div>`
+          +`<div>${old?"Стоит на оси новой трубы, по проекту переносится":"Новое место"} в ${String(q.d).replace(".",",")} м ${old?"в сторону":"от старого"}.</div>`
+          +`<div>Ближайший адрес на чертеже: ${esc(q.adr)}</div><div class="pp-k">Проект ТС-3 «Реконструкция тепловых сетей, часть 2». Положение на карте ±2–3 м.</div>`).openOn(map)})
+        .addTo(gNets)}}
 function arcPos(c,ll){ // положение точки вдоль линии, м от её начала
   const k=Math.cos(ll.lat*Math.PI/180)*111320, xy=q=>[q[1]*k,q[0]*110574], P=xy([ll.lat,ll.lng]);let s=0,best=Infinity,at=0;
   for(let i=1;i<c.length;i++){const A=xy(c[i-1]),B=xy(c[i]),dx=B[0]-A[0],dy=B[1]-A[1],L2=dx*dx+dy*dy;
@@ -855,7 +872,7 @@ function netPopup(k,h,ll){ // название сети и подпись тру
   const cfg=NET_LAYERS[k], ty=cfg.types[h.t]||[h.t];let rows="";
   if(h.a&&h.a.length){const pos=arcPos(h.c,ll);let b=h.a[0];for(const a of h.a)if(Math.abs(a[0]-pos)<Math.abs(b[0]-pos))b=a;
     rows=h.a.filter(a=>Math.abs(a[0]-b[0])<=3).map(a=>`<div><b>${esc(a[1])}</b>${a[2]?`, длина участка ${esc(a[2].replace(".",","))} м`:""}</div>`).join("")}
-  return `<div class="pp-h">${esc(ty[0])}</div>${rows}<div class="pp-k">Слой «${esc(ty[2]||cfg.layer)}» чертежа Н13-251. Положение на карте ±2–3 м.</div>`}
+  return `<div class="pp-h">${esc(ty[0])}</div>${cfg.about?`<div>${esc(cfg.about)}</div>`:""}${ty[3]?`<div>${esc(ty[3])}</div>`:""}${rows}<div class="pp-k">${ty[2]||cfg.layer?`Слой «${esc(ty[2]||cfg.layer)}» чертежа`:"Чертёж"} ${esc(cfg.doc||"Н13-251")}. Положение на карте ±2–3 м.</div>`}
 function applyDoc(doc){S.pts=doc.pts||[];S.lines=doc.lines||[];ED.updated=doc.updated||"";ED.by=doc.by||"";selTp=null;render();snapshot();histReset();accInfo()}
 async function loadPublic(){const r=await fetch(DATA_PATH+"?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw new Error("нет файла данных ("+r.status+")");return openDoc(await r.json())}
 async function fetchRemote(){ // свежая версия прямо из репозитория, минуя кэш сайта
