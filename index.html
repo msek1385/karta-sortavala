@@ -236,6 +236,8 @@ const CENTER=[61.7035,30.6915];
 const STORE="sortavala-light-v1";
 const S={pts:[],lines:[]}; // pts: {id,kind:'pole'|'tp',lamp,name,lat,lon,tp,note,src,auto}
 let mode=null, selTp=null, seq=1;
+const NO_SRC="none"; // selTp для строки «Без точки подключения» в разделе «ТП / КТП»
+const inSel=p=>selTp===NO_SRC?!p.link:p.link===selTp;
 
 /* Подложки. Яндекс.Карты используют эллиптическую проекцию Меркатора (EPSG:3395), OSM и Esri — сферическую (EPSG:3857),
    поэтому при смене подложки меняется и проекция карты. */
@@ -398,7 +400,7 @@ function render(){
     L.polyline(l.coords,{color:"#8a8f99",weight:l.minor?1.5:2.5,opacity:.85,interactive:false}).addTo(gPower);
   const showOther=$("cOtherPoles").checked, ls=$("sLinks").value;
   if(ls==="tree"&&$("cPoles").checked)for(const e of traceEdges()){
-    const dim=selTp&&e.child.link!==selTp, sel=selEdge===edgeKey(e);
+    const dim=selTp&&!inSel(e.child), sel=selEdge===edgeKey(e);
     const line=L.polyline(e.coords,{color:POLE_COLOR,weight:sel?4:2,opacity:dim?.15:.85,dashArray:e.child.linkAuto?"4 4":null,interactive:edit});
     if(edit)line.on("click",ev=>{L.DomEvent.stop(ev);if(mode)return;selectEdge(e)});
     line.addTo(gLinks);
@@ -408,7 +410,7 @@ function render(){
     if(p.lamp===false&&!showOther)continue;
     if(!$("cPoles").checked)continue;
     const t=p.link?tps.get(p.link):null, col=poleColor(p), dark=shade(col,.65);
-    const dim=selTp&&p.link!==selTp;
+    const dim=selTp&&!inSel(p);
     if(t&&ls==="rays")L.polyline([[p.lat,p.lon],[t.lat,t.lon]],{color:col,weight:1.6,opacity:dim?.15:.8,dashArray:p.linkAuto?"4 4":null,interactive:false}).addTo(gLinks);
     let m;
     if(edit){ // в режиме правки опоры — перетаскиваемые маркеры
@@ -443,10 +445,12 @@ function tpList(){
   $("tplist").innerHTML=tps.length?tps.map(t=>{const n=S.pts.filter(p=>p.link===t.id).length;
     return `<div class="tpi${selTp===t.id?" sel":""}" data-id="${esc(t.id)}" tabindex="0"><span class="sw" style="background:${tpColor(t)}"></span>${esc(tpLabel(t))}<span class="n">${n} оп.</span></div>`}).join("")
     :`<div class="note">ТП пока нет.</div>`;
+  const nosrc=S.pts.filter(p=>p.kind==="pole"&&p.lamp!==false&&!p.link).length;
+  if(nosrc)$("tplist").insertAdjacentHTML("beforeend",`<div class="tpi${selTp===NO_SRC?" sel":""}" data-id="${NO_SRC}" tabindex="0"><span class="sw" style="border:1.5px dashed #8a8f99"></span>Без точки подключения<span class="n">${nosrc} оп.</span></div>`);
 }
 $("tplist").addEventListener("click",e=>{const el=e.target.closest(".tpi");if(!el)return;const id=el.dataset.id;
   selTp=selTp===id?null:id;render();
-  if(selTp){const pts=S.pts.filter(p=>p.id===id||p.link===id).map(p=>[p.lat,p.lon]);map.fitBounds(L.latLngBounds(pts).pad(.2),{maxZoom:17})}});
+  if(selTp){const pts=S.pts.filter(p=>p.id===id||(p.kind==="pole"&&p.lamp!==false&&inSel(p))).map(p=>[p.lat,p.lon]);map.fitBounds(L.latLngBounds(pts).pad(.2),{maxZoom:17})}});
 
 const POLE_TYPES=["ОГС 0,4-9","ОГС 0,4-7"];
 // «Тип кронштейна» (по просьбе Marina 18.10.2026). Значение из файла приводится к пункту списка, если узнаётся.
