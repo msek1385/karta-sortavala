@@ -453,9 +453,10 @@ $("tplist").addEventListener("click",e=>{const el=e.target.closest(".tpi");if(!e
   selTp=selTp===id?null:id;render();
   if(selTp){const pts=S.pts.filter(p=>p.id===id||(p.kind==="pole"&&p.lamp!==false&&inSel(p))).map(p=>[p.lat,p.lon]);map.fitBounds(L.latLngBounds(pts).pad(.2),{maxZoom:17})}});
 
-// Список «Тип опоры» (от Marina 25.10.2026). Старый тип у опоры (например, «ОГС 0,4-9») остаётся в её списке отдельным пунктом.
+// Список «Тип опоры» (от Marina 25.10.2026). Прежние типы РД «ОГС 0,4-9» и «ОГС 0,4-7» Marina велела заменить на ОГС-400-8,0.
+// Другой тип у опоры остаётся в её списке отдельным пунктом.
 const POLE_TYPES=["ОГС-400-8,0","ОГС-700-8,0"];
-const ogs=v=>{const t=String(v??"").trim(),k=t.toLowerCase();return /^огс\W*400\b/.test(k)?POLE_TYPES[0]:/^огс\W*700\b/.test(k)?POLE_TYPES[1]:t};
+const ogs=v=>{const t=String(v??"").trim(),k=t.toLowerCase();return /^огс\W*(400\b|0[,.]4\W*[79]\b)/.test(k)?POLE_TYPES[0]:/^огс\W*700\b/.test(k)?POLE_TYPES[1]:t};
 // «Тип кронштейна» (по просьбе Marina 18.10.2026). Значение из файла приводится к пункту списка, если узнаётся.
 const BRACKET_TYPES=["однорожковый","двухрожковый 90°","двухрожковый 180°"];
 const brk=v=>{const t=String(v??"").trim(),k=t.toLowerCase().replace(/\s+/g,"");
