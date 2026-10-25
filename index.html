@@ -253,6 +253,7 @@ const BASES={"Яндекс: схема":yMap,"Яндекс: спутник":ySat
 let baseName="Яндекс: схема";try{const b=localStorage.getItem(BASE_KEY);if(BASES[b])baseName=b}catch(e){}
 const crsOf=l=>l.options.crs||L.CRS.EPSG3857;
 const map=L.map("map",{preferCanvas:true,renderer:L.canvas({tolerance:6}),crs:crsOf(BASES[baseName]),layers:[BASES[baseName]]}).setView(CENTER,14);
+map.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>'); // подпись Leaflet без флажка
 L.control.layers(BASES,null,{position:"topleft"}).addTo(map);
 map.on("baselayerchange",e=>{
   if(!e.auto)try{localStorage.setItem(BASE_KEY,e.name)}catch(err){}
