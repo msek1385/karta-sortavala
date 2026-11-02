@@ -203,7 +203,7 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
     <h2>Условные обозначения</h2>
     <div class="legend">
       <span class="lg-dot" style="background:#006BA6;border-color:#00456b"></span><span>Опора освещения</span>
-      <span class="lg-dot" style="background:#CB333B;border-color:#842126"></span><span>Опора с примечанием</span>
+      <span class="lg-dot" style="background:#009639;border-color:#006225"></span><span>Опора с примечанием</span>
       <span class="lg-sq"></span><span>ТП / КТП</span>
       <span class="lg-l" style="border-color:#006BA6"></span><span>Линия электропередачи</span>
       <span class="lg-l net-lg" data-net="heat" style="border-color:#D9480F;border-top-width:3px" hidden></span><span class="net-lg" data-net="heat" hidden>Тепловая сеть</span>
@@ -278,8 +278,8 @@ function hue(str){let h=0;for(const c of String(str))h=(h*31+c.charCodeAt(0))>>>
 const tpColor=tp=>`hsl(${hue(tp.id)} 70% 42%)`;
 const POLE_COLOR="#006BA6"; // PANTONE 307 C: опоры освещения и трассы по опорам
 // Цвет опоры из файла (столбец «Цвет опоры»): известные цвета PANTONE или #rrggbb; иначе — основной цвет опор
-const PANTONE={"PANTONE 307 C":"#006BA6","PANTONE 1797 C":"#CB333B"};
-const PANTONE_NAMES={"PANTONE 307 C":"синий, основной","PANTONE 1797 C":"красный"}; // подписи в списке «Цвет опоры»
+const PANTONE={"PANTONE 307 C":"#006BA6","PANTONE 355 C":"#009639","PANTONE 1797 C":"#CB333B"};
+const PANTONE_NAMES={"PANTONE 307 C":"синий, основной","PANTONE 355 C":"зелёный","PANTONE 1797 C":"красный"}; // подписи в списке «Цвет опоры»
 const poleColor=p=>{const v=String(p.color||"").trim();if(/^#[0-9a-f]{6}$/i.test(v))return v;return PANTONE[v.toUpperCase().replace(/\s+/g," ")]||POLE_COLOR};
 const shade=(hex,k)=>"#"+[1,3,5].map(i=>Math.round(parseInt(hex.slice(i,i+2),16)*k).toString(16).padStart(2,"0")).join("");
 function dist(a,b){const R=6371000,r=Math.PI/180,dl=(b.lat-a.lat)*r,dn=(b.lon-a.lon)*r;
