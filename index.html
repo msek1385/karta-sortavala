@@ -206,7 +206,7 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
       <span class="lg-dot" style="background:#009639;border-color:#006225"></span><span>Опора с примечанием</span>
       <span class="lg-sq"></span><span>ТП / КТП</span>
       <span class="lg-l" style="border-color:#006BA6"></span><span>Линия электропередачи</span>
-      <span class="lg-l" style="border-color:#E10098;border-top-width:3px"></span><span>Совместный подвес</span>
+      <span class="lg-l" style="border-color:#CB333B;border-top-width:3px"></span><span>Совместный подвес</span>
       <span class="lg-l net-lg" data-net="heat" style="border-color:#D9480F;border-top-width:3px" hidden></span><span class="net-lg" data-net="heat" hidden>Тепловая сеть</span>
       <span class="lg-ld net-lg" data-net="heat" style="border-color:#D9480F" hidden></span><span class="net-lg" data-net="heat" hidden>Тепловая сеть по топоплану</span>
       <span class="lg-l net-lg" data-net="water" style="border-color:#0C8599" hidden></span><span class="net-lg" data-net="water" hidden>Водопровод</span>
@@ -278,7 +278,7 @@ const msg=(t,err)=>{const m=$("msg");m.textContent=t;m.className="msg"+(err?" er
 function hue(str){let h=0;for(const c of String(str))h=(h*31+c.charCodeAt(0))>>>0;return h%360}
 const tpColor=tp=>`hsl(${hue(tp.id)} 70% 42%)`;
 const POLE_COLOR="#006BA6"; // PANTONE 307 C: опоры освещения и трассы по опорам
-const JOINT_COLOR="#E10098"; // PANTONE Rhodamine Red C: участки с совместным подвесом (линия между опорами с «Совместный подвес: да» или от ТП к такой опоре)
+const JOINT_COLOR="#CB333B"; // PANTONE 1797 C (красный): участки с совместным подвесом (линия между опорами с «Совместный подвес: да» или от ТП к такой опоре)
 const isJointPt=p=>String(p.joint||"").trim().toLowerCase()==="да";
 const isJointEdge=e=>isJointPt(e.child)&&(e.parent.kind==="tp"||isJointPt(e.parent));
 // Цвет опоры из файла (столбец «Цвет опоры»): известные цвета PANTONE или #rrggbb; иначе — основной цвет опор
