@@ -450,7 +450,9 @@ function stats(){
   const rows=[["Опоры освещения",S.pts.filter(p=>p.kind==="pole"&&p.lamp!==false).length]];
   let n1=0,nS=0;try{if(NETS){nS=(NETS.skal||[]).length;n1=(NETS.op1||[]).length+nS}}catch(e){} // опоры 1 этапа из файла 03.11 (серые и скальник), по просьбе Marina 03.11
   if(n1)rows.push(["Опоры освещения (1 этап)",n1],["Опоры освещения (скальник) (1 этап)",nS]);
-  rows.push(["ТП / КТП",S.pts.filter(p=>p.kind==="tp").length]);
+  const nTp=S.pts.filter(p=>p.kind==="tp").length;rows.push(["ТП / КТП",nTp]);
+  let nTp1=0;try{if(NETS)nTp1=(NETS.op1tp||[]).filter(t=>!dupTp(t)).length}catch(e){}
+  if(nTp1)rows.push(["ТП / КТП (всего)",nTp+nTp1]); // 2 этап и ТП из файла 03.11 без повторов (по просьбе Marina 03.11)
   $("stats").innerHTML=rows.map(([k,v])=>`<span>${esc(k).replace(/^  /,"&nbsp;&nbsp;&nbsp;")}</span><b>${v}</b>`).join("");
 }
 function tpList(){
@@ -865,7 +867,7 @@ async function gh(url,opt={}){return fetch(API+url,{cache:"no-store",...opt,head
    ts3p — переносимые по этому проекту столбы освещения: o — старое место, n — новое, d — сдвиг, м, adr — ближайший адрес на чертеже.
    op1 и skal — опоры и ТП из файла Marina «Сортавала_экспорт_ТП_опоры_гравит_фундамент.geojson» (03.11.2026, только просмотр):
    op1 — обычные опоры (серые кружки, видны вместе с галочкой «Опоры освещения»), skal — опоры на гравитационном фундаменте (скальный грунт),
-   слой «Опоры (скальник)», красный кружок с крестиком, тип фундамента в карточке пуст, примечание «скальник» (по просьбе Marina 03.11); у опоры id, lat, lon, tp — ТП, js — совместный подвес, note — примечание.
+   слой «Опоры (скальник)», красный кружок с крестиком, тип фундамента в карточке пуст, примечание «скальник» (по просьбе Marina 03.11); у опоры id, lat, lon, tp — ТП, js — совместный подвес, f — тип фундамента (серые: стандартные ЗФ-24/8/Д310-2,5-б, анкерные ЗФ-30/8/Д380-2,5-б, по Marina 03.11), note — примечание.
    op1tp — ТП из того же файла (n — название), op1j — участки совместного подвеса из файла «…_опоры_ТП_совм_подвеска.geojson» (a, b — опоры, c — точки, m — длина, м).
    Файл зашифрован тем же паролем, что и карта; при смене пароля перешифровывается вместе с ней. */
 const NETS_PATH="data/nets.json";
@@ -881,7 +883,7 @@ const OP1_FILL="#9AA0A6", OP1_EDGE="#5F6368"; // обычные опоры из 
 const SKAL_ICON=L.divIcon({className:"skal-wrap",html:`<svg class="skal-svg" viewBox="0 0 16 16" width="14" height="14"><circle cx="8" cy="8" r="6.6" fill="#fff" stroke="#E00000" stroke-width="1.8"/><path d="M4.8 4.8L11.2 11.2M11.2 4.8L4.8 11.2" stroke="#E00000" stroke-width="1.8" stroke-linecap="round"/></svg>`,iconSize:[0,0]});
 function op1Popup(q,rock){const tp=/^\d+$/.test(q.tp)?"ТП №"+q.tp:q.tp;
   return `<div class="pp-h">${rock?"Опора (скальник)":"Опора"} ${esc(q.id)}</div><div>Источник питания: ${esc(tp)}</div>`
-    +`${rock?"<div>Тип фундамента: </div>":""}<div>Совместный подвес: ${q.js?"да":"нет"}</div>`
+    +`<div>Тип фундамента: ${rock?"":esc(q.f||"")}</div><div>Совместный подвес: ${q.js?"да":"нет"}</div>`
     +`${q.note?`<div>Примечание: ${esc(q.note)}</div>`:""}<div class="pp-k">Координаты: ${q.lat.toFixed(6)}, ${q.lon.toFixed(6)}</div>`}
 let NETS=null;
 async function openNets(env){ // расшифровка тем же паролем, что и карта; ключ берём готовый, если соль та же
@@ -910,6 +912,8 @@ function drawNets(){gNets.clearLayers();if(!NETS)return;
           +`<div>Ближайший адрес на чертеже: ${esc(q.adr)}</div><div class="pp-k">Проект ТС-3 «Реконструкция тепловых сетей, часть 2». Положение на карте ±2–3 м.</div>`).openOn(map)})
         .addTo(gNets)}
   drawOp1()}
+function dupTp(t){const k=Math.cos(61.7*Math.PI/180)*111320; // ТП из файла 03.11, которая уже есть на карте 2 этапа (то же название, ближе 50 м)
+  return S.pts.some(p=>p.kind==="tp"&&norm(tpLabel(p))===norm(t.n)&&Math.hypot((p.lat-t.lat)*110574,(p.lon-t.lon)*k)<50)}
 function drawOp1(){ // опоры и ТП из файла 03.11: участки совместного подвеса, серые опоры, скальник, подписи ТП
   const poles=$("cPoles").checked, skal=netOn("skal");
   if(poles&&$("cLines").checked)for(const q of NETS.op1j||[])
@@ -925,9 +929,8 @@ function drawOp1(){ // опоры и ТП из файла 03.11: участки 
       .on("click",()=>{if(mode)return;L.popup().setLatLng([q.lat,q.lon]).setContent(op1Popup(q,true)).openOn(map)})
       .addTo(gNets);
   if(!$("cTp").checked)return;
-  const k=Math.cos(61.7*Math.PI/180)*111320;
   for(const t of NETS.op1tp||[]){
-    if(S.pts.some(p=>p.kind==="tp"&&norm(tpLabel(p))===norm(t.n)&&Math.hypot((p.lat-t.lat)*110574,(p.lon-t.lon)*k)<50))continue; // та же ТП уже есть на карте
+    if(dupTp(t))continue; // та же ТП уже есть на карте
     const ic=L.divIcon({className:"tp-wrap",html:`<span class="tp-icon" style="border-color:${OP1_EDGE}">${esc(t.n)}</span>`,iconSize:[0,0]});
     L.marker([t.lat,t.lon],{icon:ic,zIndexOffset:900,title:t.n})
       .on("click",()=>{if(mode)return;L.popup().setLatLng([t.lat,t.lon]).setContent(`<div class="pp-h">${esc(t.n)}</div><div class="pp-k">Координаты: ${t.lat.toFixed(6)}, ${t.lon.toFixed(6)}</div>`).openOn(map)})
