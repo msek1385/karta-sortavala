@@ -163,6 +163,7 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
   <section>
     <h2>Слои</h2>
     <label class="chk"><input type="checkbox" id="cPoles" checked> Опоры освещения</label>
+    <label class="chk"><input type="checkbox" id="cLines" checked> Линии электропередачи</label>
     <label class="chk"><input type="checkbox" id="cTp" checked> ТП / КТП</label>
     <label class="chk net-l" data-net="op1" hidden><input type="checkbox" checked> Опоры 1 этапа</label>
     <label class="chk net-l" data-net="heat" hidden><input type="checkbox" checked> Тепловые сети</label>
@@ -406,7 +407,7 @@ function render(){
   if($("cPower").checked)for(const l of S.lines)
     L.polyline(l.coords,{color:"#8a8f99",weight:l.minor?1.5:2.5,opacity:.85,interactive:false}).addTo(gPower);
   const showOther=$("cOtherPoles").checked, ls=$("sLinks").value;
-  if(ls==="tree"&&$("cPoles").checked)for(const e of traceEdges()){
+  if(ls==="tree"&&$("cPoles").checked&&$("cLines").checked)for(const e of traceEdges()){ // галочка «Линии электропередачи» прячет линии вместе с совместным подвесом
     const dim=selTp&&!inSel(e.child), sel=selEdge===edgeKey(e);
     const j=isJointEdge(e);
     const line=L.polyline(e.coords,{color:j?JOINT_COLOR:POLE_COLOR,weight:sel?5:j?4:2,opacity:dim?.15:.85,dashArray:e.child.linkAuto?"4 4":null,interactive:edit});
@@ -419,7 +420,7 @@ function render(){
     if(!$("cPoles").checked)continue;
     const t=p.link?tps.get(p.link):null, col=poleColor(p), dark=shade(col,.65);
     const dim=selTp&&!inSel(p);
-    if(t&&ls==="rays")L.polyline([[p.lat,p.lon],[t.lat,t.lon]],{color:col,weight:1.6,opacity:dim?.15:.8,dashArray:p.linkAuto?"4 4":null,interactive:false}).addTo(gLinks);
+    if(t&&ls==="rays"&&$("cLines").checked)L.polyline([[p.lat,p.lon],[t.lat,t.lon]],{color:col,weight:1.6,opacity:dim?.15:.8,dashArray:p.linkAuto?"4 4":null,interactive:false}).addTo(gLinks);
     let m;
     if(edit){ // в режиме правки опоры — перетаскиваемые маркеры
       const cls="pole-ic"+(p.lamp===false?" other":"")+(dim?" dim":"")+(linkChild===p.id?" pick":"");
@@ -718,6 +719,7 @@ map.on("click",e=>{if(selEdge&&!mode)return clearEdge();
   if(mode==="pole")p.lamp=true;S.pts.push(p);render()});
 
 for(const id of ["cPoles","cOtherPoles","cTp","sLinks","cPower","cAuto","nRad"])$(id).addEventListener("change",render);
+$("cLines").addEventListener("change",()=>{if(!$("cLines").checked&&selEdge)clearEdge();render()});
 // Включённые слои сетей запоминаются в браузере; по умолчанию включена только теплосеть, чтобы карта освещения оставалась читаемой
 const NETS_KEY="karta-sortavala-nets";
 try{const st=JSON.parse(localStorage.getItem(NETS_KEY)||"null");if(st)for(const e of document.querySelectorAll(".net-l"))if(e.dataset.net in st)e.querySelector("input").checked=!!st[e.dataset.net]}catch(e){}
