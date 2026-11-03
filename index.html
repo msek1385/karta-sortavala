@@ -164,7 +164,7 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
     <h2>Слои</h2>
     <label class="chk"><input type="checkbox" id="cPoles" checked> Опоры освещения</label>
     <label class="chk"><input type="checkbox" id="cTp" checked> ТП / КТП</label>
-    <label class="chk net-l" data-net="op1" hidden><input type="checkbox" checked> Опоры из файла от 03.11.2026</label>
+    <label class="chk net-l" data-net="op1" hidden><input type="checkbox" checked> Опоры 1 этапа</label>
     <label class="chk net-l" data-net="heat" hidden><input type="checkbox" checked> Тепловые сети</label>
     <label class="chk net-l" data-net="water" hidden><input type="checkbox"> Водопровод</label>
     <label class="chk net-l" data-net="sewer" hidden><input type="checkbox"> Канализация</label>
@@ -208,8 +208,7 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
       <span class="lg-sq"></span><span>ТП / КТП</span>
       <span class="lg-l" style="border-color:#006BA6"></span><span>Линия электропередачи</span>
       <span class="lg-l" style="border-color:#FF0000;border-top-width:4px"></span><span>Совместный подвес</span>
-      <span class="lg-dot net-lg" data-net="op1" style="background:#343A40;border-color:#fff;box-shadow:0 0 0 1px #343A40" hidden></span><span class="net-lg" data-net="op1" hidden>Опора из файла от 03.11: выполнено</span>
-      <span class="lg-dot net-lg" data-net="op1" style="background:#fff;border-color:#343A40" hidden></span><span class="net-lg" data-net="op1" hidden>Опора из файла от 03.11: не выполнено</span>
+      <span class="lg-dot net-lg" data-net="op1" style="background:#000;border-color:#000" hidden></span><span class="net-lg" data-net="op1" hidden>Опоры 1 этапа</span>
       <span class="lg-l net-lg" data-net="heat" style="border-color:#D9480F;border-top-width:3px" hidden></span><span class="net-lg" data-net="heat" hidden>Тепловая сеть</span>
       <span class="lg-ld net-lg" data-net="heat" style="border-color:#D9480F" hidden></span><span class="net-lg" data-net="heat" hidden>Тепловая сеть по топоплану</span>
       <span class="lg-l net-lg" data-net="water" style="border-color:#0C8599" hidden></span><span class="net-lg" data-net="water" hidden>Водопровод</span>
@@ -856,7 +855,7 @@ async function gh(url,opt={}){return fetch(API+url,{cache:"no-store",...opt,head
    water — «31_Водопровод», sewer и storm — «30_Канализация». У линии t — тип, c — точки, a — подписи труб [м от начала линии, текст, длина].
    ts3 — оси проектных труб из чертежа «ТС-3 РП План ТС Часть-2» (та же система координат; t:"e" — по существующей теплосети, "n" — новая трасса),
    ts3p — переносимые по этому проекту столбы освещения: o — старое место, n — новое, d — сдвиг, м, adr — ближайший адрес на чертеже.
-   op1 — опоры из файла Marina opory_data_2026-11-03.json (672 шт., только просмотр): id, lat, lon, tp — ТП, line — линия, h — высота, м,
+   op1 — опоры 1 этапа из файла Marina opory_data_2026-11-03.json (672 шт., только просмотр; слой «Опоры 1 этапа»): id, lat, lon, tp — ТП, line — линия, h — высота, м,
    kr — число рожков кронштейна, ka — угол двухрожкового, js — совместный подвес, done/date — выполнено и дата, w — даты отметок работ по номерам,
    note и wc — примечание и комментарий. Связи между опорами в файле не совпадают с опорами, поэтому линии не рисуются.
    Файл зашифрован тем же паролем, что и карта; при смене пароля перешифровывается вместе с ней. */
@@ -869,12 +868,12 @@ const NET_LAYERS={ // цвет слоя; типы линий: название, 
   ts3:{color:"#AE3EC9",w:3.5,types:{e:["Проект теплосети ТС-3","","","Идёт по трассе существующей теплосети."],n:["Проект теплосети ТС-3","","","Новая трасса: в существующей теплосети её нет."]},
     doc:"«ТС-3 РП План ТС Часть-2»",about:"Реконструкция тепловых сетей, часть 2 (ГИПРОНИИГАЗ, шифр 49/12-К-ТС2-ТС-3)."}};
 const TS3_PT="#AE3EC9";
-const OP1_COLOR="#343A40"; // опоры из файла 03.11: графитовые, закрашенные — выполнено, белые — нет
+const OP1_COLOR="#000000"; // опоры 1 этапа (файл 03.11): чёрный кружок с чёрной заливкой (по просьбе Marina 03.11)
 const ruDate=s=>/^\d{4}-\d\d-\d\d$/.test(s||"")?s.split("-").reverse().join("."):esc(s||"");
 function op1Popup(q){
   const tp=/^\d+$/.test(q.tp)?"ТП №"+q.tp:q.tp, br=!q.kr?"нет":q.kr===1?"однорожковый":q.ka?`двухрожковый ${q.ka}°`:"двухрожковый";
   const w=q.w?Object.keys(q.w).sort((a,b)=>a-b).map(k=>`${esc(k)} — ${ruDate(q.w[k])}`).join("; "):"";
-  return `<div class="pp-h">Опора ${esc(q.id)}</div><div>Источник питания: ${esc(tp)}</div>${q.line?`<div>Линия: ${esc(q.line)}</div>`:""}`
+  return `<div class="pp-h">Опора 1 этапа ${esc(q.id)}</div><div>Источник питания: ${esc(tp)}</div>${q.line?`<div>Линия: ${esc(q.line)}</div>`:""}`
     +`<div>Высота: ${esc(String(q.h))} м</div><div>Кронштейн: ${br}</div><div>Совместный подвес: ${q.js?"да":"нет"}</div>`
     +`<div>Выполнено: ${q.done?"да"+(q.date?", "+ruDate(q.date):""):"нет"}</div>${w?`<div>Отметки работ: ${w}</div>`:""}`
     +`${q.note?`<div>Примечание: ${esc(q.note)}</div>`:""}${q.wc?`<div>Комментарий: ${esc(q.wc)}</div>`:""}`
@@ -906,7 +905,7 @@ function drawNets(){gNets.clearLayers();if(!NETS)return;
           +`<div>Ближайший адрес на чертеже: ${esc(q.adr)}</div><div class="pp-k">Проект ТС-3 «Реконструкция тепловых сетей, часть 2». Положение на карте ±2–3 м.</div>`).openOn(map)})
         .addTo(gNets)}
   if(netOn("op1"))for(const q of NETS.op1||[])
-    L.circleMarker([q.lat,q.lon],{radius:4.5,color:q.done?"#fff":OP1_COLOR,weight:q.done?1:1.8,fillColor:q.done?OP1_COLOR:"#fff",fillOpacity:1})
+    L.circleMarker([q.lat,q.lon],{radius:4.5,color:OP1_COLOR,weight:1.5,fillColor:OP1_COLOR,fillOpacity:1})
       .on("click",()=>{if(mode)return;L.popup().setLatLng([q.lat,q.lon]).setContent(op1Popup(q)).openOn(map)})
       .addTo(gNets)}
 function arcPos(c,ll){ // положение точки вдоль линии, м от её начала
