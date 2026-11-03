@@ -165,9 +165,9 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
   <section>
     <h2>Слои</h2>
     <label class="chk"><input type="checkbox" id="cPoles" checked> Опоры освещения</label>
+    <label class="chk net-l" data-net="skal" hidden><input type="checkbox" checked> Опоры освещения (скальник)</label>
     <label class="chk"><input type="checkbox" id="cLines" checked> Линии электропередачи</label>
     <label class="chk"><input type="checkbox" id="cTp" checked> ТП / КТП</label>
-    <label class="chk net-l" data-net="skal" hidden><input type="checkbox" checked> Опоры (скальник)</label>
     <label class="chk net-l" data-net="heat" hidden><input type="checkbox" checked> Тепловые сети</label>
     <label class="chk net-l" data-net="water" hidden><input type="checkbox"> Водопровод</label>
     <label class="chk net-l" data-net="sewer" hidden><input type="checkbox"> Канализация</label>
@@ -211,7 +211,7 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
       <span class="lg-sq"></span><span>ТП / КТП</span>
       <span class="lg-l" style="border-color:#006BA6"></span><span>Линия электропередачи</span>
       <span class="lg-l" style="border-color:#FF0000;border-top-width:4px"></span><span>Совместный подвес</span>
-      <span class="net-lg lg-ic" data-net="skal" hidden><svg class="skal-svg" viewBox="0 0 16 16" width="14" height="14"><circle cx="8" cy="8" r="6.6" fill="#fff" stroke="#E00000" stroke-width="1.8"/><path d="M4.8 4.8L11.2 11.2M11.2 4.8L4.8 11.2" stroke="#E00000" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="net-lg" data-net="skal" hidden>Опоры (скальник)</span>
+      <span class="net-lg lg-ic" data-net="skal" hidden><svg class="skal-svg" viewBox="0 0 16 16" width="14" height="14"><circle cx="8" cy="8" r="6.6" fill="#fff" stroke="#E00000" stroke-width="1.8"/><path d="M4.8 4.8L11.2 11.2M11.2 4.8L4.8 11.2" stroke="#E00000" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="net-lg" data-net="skal" hidden>Опоры освещения (скальник)</span>
       <span class="lg-l net-lg" data-net="heat" style="border-color:#D9480F;border-top-width:3px" hidden></span><span class="net-lg" data-net="heat" hidden>Тепловая сеть</span>
       <span class="lg-ld net-lg" data-net="heat" style="border-color:#D9480F" hidden></span><span class="net-lg" data-net="heat" hidden>Тепловая сеть по топоплану</span>
       <span class="lg-l net-lg" data-net="water" style="border-color:#0C8599" hidden></span><span class="net-lg" data-net="water" hidden>Водопровод</span>
@@ -447,7 +447,10 @@ function render(){
   stats();tpList();save();
 }
 function stats(){
-  const rows=[["Опоры освещения",S.pts.filter(p=>p.kind==="pole"&&p.lamp!==false).length],["ТП / КТП",S.pts.filter(p=>p.kind==="tp").length]];
+  const rows=[["Опоры освещения",S.pts.filter(p=>p.kind==="pole"&&p.lamp!==false).length]];
+  let n1=0,nS=0;try{if(NETS){nS=(NETS.skal||[]).length;n1=(NETS.op1||[]).length+nS}}catch(e){} // опоры 1 этапа из файла 03.11 (серые и скальник), по просьбе Marina 03.11
+  if(n1)rows.push(["Опоры освещения (1 этап)",n1],["Опоры освещения (скальник) (1 этап)",nS]);
+  rows.push(["ТП / КТП",S.pts.filter(p=>p.kind==="tp").length]);
   $("stats").innerHTML=rows.map(([k,v])=>`<span>${esc(k).replace(/^  /,"&nbsp;&nbsp;&nbsp;")}</span><b>${v}</b>`).join("");
 }
 function tpList(){
