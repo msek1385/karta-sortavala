@@ -447,10 +447,10 @@ function render(){
   stats();tpList();save();
 }
 function stats(){
-  const rows=[["Опоры освещения",S.pts.filter(p=>p.kind==="pole"&&p.lamp!==false).length]];
+  const rows=[["Опоры освещения (2 этап)",S.pts.filter(p=>p.kind==="pole"&&p.lamp!==false).length]];
   let n1=0,nS=0;try{if(NETS){nS=(NETS.skal||[]).length;n1=(NETS.op1||[]).length+nS}}catch(e){} // опоры 1 этапа из файла 03.11 (серые и скальник), по просьбе Marina 03.11
   if(n1)rows.push(["Опоры освещения (1 этап)",n1],["Опоры освещения (скальник) (1 этап)",nS]);
-  const nTp=S.pts.filter(p=>p.kind==="tp").length;rows.push(["ТП / КТП",nTp]);
+  const nTp=S.pts.filter(p=>p.kind==="tp").length;rows.push(["ТП / КТП (2 этап)",nTp]); // названия строк сводки — по Marina 03.11
   let nTp1=0;try{if(NETS)nTp1=(NETS.op1tp||[]).filter(t=>!dupTp(t)).length}catch(e){}
   if(nTp1)rows.push(["ТП / КТП (всего)",nTp+nTp1]); // 2 этап и ТП из файла 03.11 без повторов (по просьбе Marina 03.11)
   $("stats").innerHTML=rows.map(([k,v])=>`<span>${esc(k).replace(/^  /,"&nbsp;&nbsp;&nbsp;")}</span><b>${v}</b>`).join("");
