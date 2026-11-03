@@ -165,7 +165,6 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
     <label class="chk"><input type="checkbox" id="cPoles" checked> Опоры освещения</label>
     <label class="chk"><input type="checkbox" id="cLines" checked> Линии электропередачи</label>
     <label class="chk"><input type="checkbox" id="cTp" checked> ТП / КТП</label>
-    <label class="chk net-l" data-net="op1" hidden><input type="checkbox" checked> Опоры 1 этапа</label>
     <label class="chk net-l" data-net="heat" hidden><input type="checkbox" checked> Тепловые сети</label>
     <label class="chk net-l" data-net="water" hidden><input type="checkbox"> Водопровод</label>
     <label class="chk net-l" data-net="sewer" hidden><input type="checkbox"> Канализация</label>
@@ -209,7 +208,6 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
       <span class="lg-sq"></span><span>ТП / КТП</span>
       <span class="lg-l" style="border-color:#006BA6"></span><span>Линия электропередачи</span>
       <span class="lg-l" style="border-color:#FF0000;border-top-width:4px"></span><span>Совместный подвес</span>
-      <span class="lg-dot net-lg" data-net="op1" style="background:#000;border-color:#000" hidden></span><span class="net-lg" data-net="op1" hidden>Опоры 1 этапа</span>
       <span class="lg-l net-lg" data-net="heat" style="border-color:#D9480F;border-top-width:3px" hidden></span><span class="net-lg" data-net="heat" hidden>Тепловая сеть</span>
       <span class="lg-ld net-lg" data-net="heat" style="border-color:#D9480F" hidden></span><span class="net-lg" data-net="heat" hidden>Тепловая сеть по топоплану</span>
       <span class="lg-l net-lg" data-net="water" style="border-color:#0C8599" hidden></span><span class="net-lg" data-net="water" hidden>Водопровод</span>
@@ -719,8 +717,7 @@ map.on("click",e=>{if(selEdge&&!mode)return clearEdge();
   if(mode==="pole")p.lamp=true;S.pts.push(p);render()});
 
 for(const id of ["cPoles","cOtherPoles","cTp","sLinks","cPower","cAuto","nRad"])$(id).addEventListener("change",render);
-$("cLines").addEventListener("change",()=>{if(!$("cLines").checked&&selEdge)clearEdge();drawNets();render()});
-$("cTp").addEventListener("change",drawNets); // подписи ТП 1 этапа прячутся вместе с ТП
+$("cLines").addEventListener("change",()=>{if(!$("cLines").checked&&selEdge)clearEdge();render()});
 // Включённые слои сетей запоминаются в браузере; по умолчанию включена только теплосеть, чтобы карта освещения оставалась читаемой
 const NETS_KEY="karta-sortavala-nets";
 try{const st=JSON.parse(localStorage.getItem(NETS_KEY)||"null");if(st)for(const e of document.querySelectorAll(".net-l"))if(e.dataset.net in st)e.querySelector("input").checked=!!st[e.dataset.net]}catch(e){}
@@ -858,9 +855,6 @@ async function gh(url,opt={}){return fetch(API+url,{cache:"no-store",...opt,head
    water — «31_Водопровод», sewer и storm — «30_Канализация». У линии t — тип, c — точки, a — подписи труб [м от начала линии, текст, длина].
    ts3 — оси проектных труб из чертежа «ТС-3 РП План ТС Часть-2» (та же система координат; t:"e" — по существующей теплосети, "n" — новая трасса),
    ts3p — переносимые по этому проекту столбы освещения: o — старое место, n — новое, d — сдвиг, м, adr — ближайший адрес на чертеже.
-   op1 — опоры 1 этапа из файла Marina «Сортавала_экспорт_опоры_ТП_совм_подвеска.geojson» (601 шт., только просмотр; слой «Опоры 1 этапа»):
-   id, lat, lon, tp — ТП, t — тип (анкерная/стандартная), h — высота, м, f — фундамент, kr — число рожков, ka — угол двухрожкового, js — совместный подвес, note — примечание.
-   op1tp — ТП 1 этапа (n — название, k — опор в файле), op1j — участки совместного подвеса из файла (a, b — опоры, c — точки, m — длина, м).
    Файл зашифрован тем же паролем, что и карта; при смене пароля перешифровывается вместе с ней. */
 const NETS_PATH="data/nets.json";
 const NET_LAYERS={ // цвет слоя; типы линий: название, пунктир, слой чертежа
@@ -871,13 +865,6 @@ const NET_LAYERS={ // цвет слоя; типы линий: название, 
   ts3:{color:"#AE3EC9",w:3.5,types:{e:["Проект теплосети ТС-3","","","Идёт по трассе существующей теплосети."],n:["Проект теплосети ТС-3","","","Новая трасса: в существующей теплосети её нет."]},
     doc:"«ТС-3 РП План ТС Часть-2»",about:"Реконструкция тепловых сетей, часть 2 (ГИПРОНИИГАЗ, шифр 49/12-К-ТС2-ТС-3)."}};
 const TS3_PT="#AE3EC9";
-const OP1_COLOR="#000000"; // опоры 1 этапа: чёрный кружок с чёрной заливкой (по просьбе Marina 03.11)
-function op1Popup(q){
-  const tp=/^\d+$/.test(q.tp)?"ТП №"+q.tp:q.tp, br=!q.kr?"нет":q.kr===1?"однорожковый":q.ka?`двухрожковый ${q.ka}°`:"двухрожковый";
-  return `<div class="pp-h">Опора 1 этапа ${esc(q.id)}</div><div>Источник питания: ${esc(tp)}</div>`
-    +`<div>Тип опоры: ${esc(q.t||"")}</div><div>Высота: ${esc(String(q.h??""))} м</div><div>Фундамент: ${esc(q.f||"")}</div>`
-    +`<div>Кронштейн: ${br}</div><div>Совместный подвес: ${q.js?"да":"нет"}</div>${q.note?`<div>Примечание: ${esc(q.note)}</div>`:""}`
-    +`<div class="pp-k">Координаты: ${q.lat.toFixed(6)}, ${q.lon.toFixed(6)}</div>`}
 let NETS=null;
 async function openNets(env){ // расшифровка тем же паролем, что и карта; ключ берём готовый, если соль та же
   if(!isEnc(env))return env;if(!CR.pass)throw new Error("карта не открыта паролем");
@@ -903,25 +890,7 @@ function drawNets(){gNets.clearLayers();if(!NETS)return;
         .on("click",e=>{if(mode)return;L.popup().setLatLng(ll).setContent(`<div class="pp-h">${old?"Демонтировать столб освещения":"Установить столб освещения"}</div>`
           +`<div>${old?"Стоит на оси новой трубы, по проекту переносится":"Новое место"} в ${String(q.d).replace(".",",")} м ${old?"в сторону":"от старого"}.</div>`
           +`<div>Ближайший адрес на чертеже: ${esc(q.adr)}</div><div class="pp-k">Проект ТС-3 «Реконструкция тепловых сетей, часть 2». Положение на карте ±2–3 м.</div>`).openOn(map)})
-        .addTo(gNets)}
-  if(netOn("op1"))drawOp1()}
-function drawOp1(){ // опоры 1 этапа: участки совместного подвеса, опоры и подписи ТП
-  if($("cLines").checked)for(const q of NETS.op1j||[])
-    L.polyline(q.c,{color:JOINT_COLOR,weight:4,opacity:.85})
-      .on("click",e=>{if(mode)return;L.popup().setLatLng(e.latlng).setContent(`<div class="pp-h">Совместный подвес, 1 этап</div><div>${esc(q.a)} — ${esc(q.b)}</div>${q.m?`<div>Длина: ${String(q.m).replace(".",",")} м</div>`:""}`).openOn(map)})
-      .addTo(gNets);
-  for(const q of NETS.op1||[])
-    L.circleMarker([q.lat,q.lon],{radius:4.5,color:OP1_COLOR,weight:1.5,fillColor:OP1_COLOR,fillOpacity:1})
-      .on("click",()=>{if(mode)return;L.popup().setLatLng([q.lat,q.lon]).setContent(op1Popup(q)).openOn(map)})
-      .addTo(gNets);
-  if(!$("cTp").checked)return;
-  const k=Math.cos(61.7*Math.PI/180)*111320;
-  for(const t of NETS.op1tp||[]){
-    if(S.pts.some(p=>p.kind==="tp"&&norm(tpLabel(p))===norm(t.n)&&Math.hypot((p.lat-t.lat)*110574,(p.lon-t.lon)*k)<50))continue; // та же ТП уже есть на карте 2 этапа
-    const ic=L.divIcon({className:"tp-wrap",html:`<span class="tp-icon" style="border-color:${OP1_COLOR}">${esc(t.n)}</span>`,iconSize:[0,0]});
-    L.marker([t.lat,t.lon],{icon:ic,zIndexOffset:900,title:t.n+" · 1 этап"+(t.k?" · опор: "+t.k:"")})
-      .on("click",()=>{if(mode)return;L.popup().setLatLng([t.lat,t.lon]).setContent(`<div class="pp-h">${esc(t.n)}</div><div>ТП 1 этапа${t.k?", опор в файле: "+t.k:""}</div><div class="pp-k">Координаты: ${t.lat.toFixed(6)}, ${t.lon.toFixed(6)}</div>`).openOn(map)})
-      .addTo(gNets)}}
+        .addTo(gNets)}}
 function arcPos(c,ll){ // положение точки вдоль линии, м от её начала
   const k=Math.cos(ll.lat*Math.PI/180)*111320, xy=q=>[q[1]*k,q[0]*110574], P=xy([ll.lat,ll.lng]);let s=0,best=Infinity,at=0;
   for(let i=1;i<c.length;i++){const A=xy(c[i-1]),B=xy(c[i]),dx=B[0]-A[0],dy=B[1]-A[1],L2=dx*dx+dy*dy;
