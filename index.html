@@ -66,6 +66,14 @@ input[type=number]{width:70px;font:inherit;padding:3px 5px;border:1px solid var(
 #edgeBar[hidden]{display:none}
 .undo-ctl a{width:auto!important;padding:0 10px;font:600 13px/30px var(--sans);white-space:nowrap;color:#1d2524}
 .undo-ctl a.off{color:#a3aaa8;cursor:default}
+.find-ctl{background:#fff;color:#1d2524;font:13px/1.3 var(--sans)}
+.find-ctl .row{display:flex;align-items:stretch}
+.find-ctl input{border:0;padding:0 8px;height:32px;width:240px;font:13px var(--sans);color:#1d2524;background:#fff;outline:none;border-radius:4px 0 0 4px}
+.find-ctl input.bad{box-shadow:inset 0 0 0 2px #c92a2a}
+.find-ctl a{width:auto!important;height:32px!important;line-height:32px!important;padding:0 10px;font-weight:600;color:#1d2524!important;border-bottom:0!important;border-left:1px solid #ccc;white-space:nowrap}
+.find-ctl a.x{padding:0 9px;font-weight:400}.find-ctl a[hidden]{display:none}
+.find-ctl .err{padding:4px 8px 6px;color:#c92a2a;font-size:12px;max-width:300px}.find-ctl .err[hidden]{display:none}
+@media (max-width:700px){.find-ctl input{width:150px}}
 .leaflet-popup-content textarea{width:100%;font:inherit;padding:4px;margin:4px 0;min-height:52px;resize:vertical}
 .leaflet-popup-content{font:13px/1.45 var(--sans);min-width:220px}
 .leaflet-popup-content select,.leaflet-popup-content input[type=text]{width:100%;font:inherit;padding:4px;margin:4px 0}
@@ -791,6 +799,50 @@ const UndoCtl=L.Control.extend({options:{position:"topleft"},
 const undoCtl=new UndoCtl().addTo(map);
 function updUndo(){const a=undoCtl.btn,n=HIST.stack.length;a.classList.toggle("off",!n);
   a.title=n?`Отменить последнее действие (Ctrl+Z). Можно отменить шагов: ${n}`:"Отменять пока нечего"}
+/* Поиск по координатам (по просьбе Marina 03.11): «61.699360, 30.693671», «61,699360 30,693671», можно и в обратном порядке
+   (широта Сортавалы больше долготы, поэтому порядок угадывается). Карта приближается к точке и ставит метку;
+   если опора или ТП ближе 10 м — сразу открывается её карточка. */
+const gFind=L.layerGroup().addTo(map);
+function parseLL(s){
+  const t=String(s||"").replace(/[°′″'"NnEeСсВвШшДд:]/g," ").trim();
+  let n=t.match(/-?\d+\.\d+/g);
+  if(!n||n.length!==2)n=t.match(/-?\d+,\d+/g)?.map(x=>x.replace(",","."));
+  if(!n||n.length!==2)n=t.split(/[\s,;]+/).filter(Boolean);
+  if(!n||n.length!==2)return null;
+  let [a,b]=n.map(Number);if(!isFinite(a)||!isFinite(b))return null;
+  if(a<b)[a,b]=[b,a];
+  return Math.abs(a)<=90&&Math.abs(b)<=180?[a,b]:null}
+function findLL(lat,lon){
+  gFind.clearLayers();map.closePopup();
+  const k=Math.cos(lat*Math.PI/180)*111320, dist=(a,b)=>Math.hypot((a-lat)*110574,(b-lon)*k);
+  let bd=Infinity,show=null;
+  for(const p of S.pts){const d=dist(p.lat,p.lon);if(d<bd){bd=d;show=()=>openPopup([p.lat,p.lon],p.kind==="tp"?tpPopup(p):polePopup(p))}}
+  try{if(NETS)for(const [arr,rock] of [[NETS.op1||[],false],[NETS.skal||[],true]])for(const q of arr){const d=dist(q.lat,q.lon);
+    if(d<bd){bd=d;show=()=>L.popup().setLatLng([q.lat,q.lon]).setContent(op1Popup(q,rock)).openOn(map)}}
+    if(NETS)for(const t of NETS.op1tp||[]){const d=dist(t.lat,t.lon);
+      if(d<bd){bd=d;show=()=>L.popup().setLatLng([t.lat,t.lon]).setContent(`<div class="pp-h">${esc(t.n)}</div><div class="pp-k">Координаты: ${t.lat.toFixed(6)}, ${t.lon.toFixed(6)}</div>`).openOn(map)}}}catch(e){}
+  map.setView([lat,lon],Math.max(map.getZoom(),18));
+  L.circleMarker([lat,lon],{radius:13,color:"#111",weight:5,fill:false,interactive:false}).addTo(gFind);
+  L.circleMarker([lat,lon],{radius:13,color:"#FCC419",weight:3,fill:false,interactive:false}).addTo(gFind);
+  if(show&&bd<=10)show();
+  else L.popup().setLatLng([lat,lon]).setContent(`<div class="pp-h">Точка ${lat.toFixed(6)}, ${lon.toFixed(6)}</div>`
+    +(bd<Infinity?`<div>Ближайшая опора или ТП в ${bd<1000?Math.round(bd)+" м":(bd/1000).toFixed(1).replace(".",",")+" км"}</div>`:"")).openOn(map);
+  findCtl.x.hidden=false}
+const FindCtl=L.Control.extend({options:{position:"topright"},
+  onAdd(){const d=L.DomUtil.create("div","leaflet-bar find-ctl"),row=L.DomUtil.create("div","row",d);
+    const inp=L.DomUtil.create("input","",row);inp.type="text";inp.placeholder="Координаты: 61.699360, 30.693671";inp.setAttribute("aria-label","Поиск по координатам");
+    const go=L.DomUtil.create("a","",row);go.href="#";go.setAttribute("role","button");go.textContent="Найти";
+    const x=L.DomUtil.create("a","x",row);x.href="#";x.setAttribute("role","button");x.title="Убрать метку";x.textContent="✕";x.hidden=true;
+    const err=L.DomUtil.create("div","err",d);err.hidden=true;
+    const run=()=>{const ll=parseLL(inp.value);inp.classList.toggle("bad",!ll);err.hidden=!!ll;
+      if(!ll){err.textContent="Не удалось прочитать координаты. Пример: 61.699360, 30.693671";return}findLL(ll[0],ll[1])};
+    L.DomEvent.disableClickPropagation(d);L.DomEvent.disableScrollPropagation(d);
+    L.DomEvent.on(inp,"keydown",ev=>{ev.stopPropagation();if(ev.key==="Enter"){ev.preventDefault();run()}});
+    L.DomEvent.on(inp,"input",()=>{inp.classList.remove("bad");err.hidden=true});
+    L.DomEvent.on(go,"click",ev=>{L.DomEvent.preventDefault(ev);run()});
+    L.DomEvent.on(x,"click",ev=>{L.DomEvent.preventDefault(ev);gFind.clearLayers();map.closePopup();x.hidden=true;inp.value=""});
+    this.x=x;return d}});
+const findCtl=new FindCtl().addTo(map);
 document.addEventListener("keydown",ev=>{ // Ctrl+Z при любой раскладке; в полях ввода работает обычная отмена набора
   if((ev.ctrlKey||ev.metaKey)&&!ev.shiftKey&&!ev.altKey&&ev.code==="KeyZ"&&!/^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName)&&canEdit()){ev.preventDefault();undo()}});
 
