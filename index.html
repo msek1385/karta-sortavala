@@ -938,14 +938,15 @@ function op1Popup(q,rock){const tp=/^\d+$/.test(q.tp)?"ТП №"+q.tp:q.tp;
   return `<div class="pp-h">${rock?"Опора (скальник)":"Опора"} ${esc(q.id)}</div><div>Источник питания: ${esc(tp)}</div>`
     +`<div>Тип фундамента: ${rock?"":esc(q.f||"")}</div><div>Совместный подвес: ${q.js?"да":"нет"}</div>`
     +`${q.note?`<div>Примечание: ${esc(q.note)}</div>`:""}<div class="pp-k">Координаты: ${q.lat.toFixed(6)}, ${q.lon.toFixed(6)}</div>`}
-let NETS=null;
+let NETS=null,NETS_IV=null;
 async function openNets(env){ // расшифровка тем же паролем, что и карта; ключ берём готовый, если соль та же
   if(!isEnc(env))return env;if(!CR.pass)throw new Error("карта не открыта паролем");
   const key=CR.key&&env.salt===CR.salt&&env.iter===CR.iter?CR.key:await deriveKey(CR.pass,env.salt,env.iter);
   return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:b64Bytes(env.iv)},key,b64Bytes(env.data))))}
-async function loadNets(){if(!SITE||NETS)return;
+async function loadNets(){if(!SITE)return; // при автообновлении перечитываем; если файл не менялся (тот же iv), ничего не делаем
   try{const r=await fetch(NETS_PATH+"?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;
-    NETS=await openNets(await r.json());
+    const env=await r.json();if(NETS&&env.iv&&env.iv===NETS_IV)return;
+    NETS=await openNets(env);NETS_IV=env.iv||null;
     for(const e of document.querySelectorAll(".net-l,.net-lg"))if(NETS[e.dataset.net]&&NETS[e.dataset.net].length)e.hidden=false;
     drawNets();render()}
   catch(e){console.warn("Инженерные сети не загрузились:",e)}}
