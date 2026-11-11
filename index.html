@@ -232,7 +232,7 @@ body[data-role="view"] .edit-only,body[data-role="local"] .site-only,body:not([d
       <span class="lg-dot net-lg" data-net="ts3" style="background:#AE3EC9;border-color:#7a2a8d" hidden></span><span class="net-lg" data-net="ts3" hidden>Столб освещения: установить (ТС-3)</span>
     </div>
   </section>
-  <section>
+  <section class="edit-only"><!-- экспорт только у редакторов (просьба Marina 11.11.2026) -->
     <h2>Экспорт</h2>
     <div class="row">
       <button id="bGeo">GeoJSON</button>
@@ -708,14 +708,14 @@ const tpName=id=>{const t=S.pts.find(x=>x.id===id);return t?tpLabel(t):""};
 function rowsOut(){return S.pts.map(p=>({тип:p.kind==="tp"?"ТП":(p.lamp===false?"Опора ЛЭП":"Опора освещения"),номер:p.kind==="tp"?tpLabel(p):(p.name||""),тип_опоры:p.ptype||"",тип_закладной_детали:p.kind==="pole"?(p.embed||""):"",тип_кронштейна:p.kind==="pole"?(p.bracket||""):"",цвет_опоры:p.kind==="pole"?(p.color||""):"",совместный_подвес:p.joint||"",требуется_кронирование:p.crown||"",
   широта:p.lat,долгота:p.lon,тп:p.kind==="pole"?tpName(p.link):"",привязка:p.kind!=="pole"?"":p.link?(p.linkAuto?"по близости":"по данным"):"нет",
   расстояние_до_тп_м:p.linkDist!=null?Math.round(p.linkDist):"",источник:p.src,примечание:p.note||""}))}
-$("bCsv").onclick=()=>{const r=rowsOut();if(!r.length)return msg("Нечего выгружать.",true);const h=Object.keys(r[0]);
+$("bCsv").onclick=()=>{if(!canEdit())return;const r=rowsOut();if(!r.length)return msg("Нечего выгружать.",true);const h=Object.keys(r[0]);
   const cell=v=>{const s=typeof v==="number"?String(v).replace(".",","):String(v);return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
   download("sortavala_opory_tp.csv","﻿"+[h.join(";"),...r.map(o=>h.map(k=>cell(o[k])).join(";"))].join("\r\n"),"text/csv;charset=utf-8")};
-$("bGeo").onclick=()=>{const fs=rowsOut().map((o,i)=>({type:"Feature",geometry:{type:"Point",coordinates:[S.pts[i].lon,S.pts[i].lat]},properties:{...o,kind:S.pts[i].kind,lamp:S.pts[i].lamp}}));
+$("bGeo").onclick=()=>{if(!canEdit())return;const fs=rowsOut().map((o,i)=>({type:"Feature",geometry:{type:"Point",coordinates:[S.pts[i].lon,S.pts[i].lat]},properties:{...o,kind:S.pts[i].kind,lamp:S.pts[i].lamp}}));
   for(const e of traceEdges())fs.push({type:"Feature",geometry:{type:"LineString",coordinates:e.coords.map(c=>[c[1],c[0]])},properties:{role:"trace",опора:e.child.name||"",от:e.parent.kind==="tp"?tpLabel(e.parent):(e.parent.name||"опора"),линия:e.auto?"автоматически":"вручную"}});
   for(const l of S.lines)fs.push({type:"Feature",geometry:{type:"LineString",coordinates:l.coords.map(c=>[c[1],c[0]])},properties:{role:"power_line"}});
   download("sortavala_opory_tp.geojson",JSON.stringify({type:"FeatureCollection",features:fs}),"application/geo+json")};
-$("bKml").onclick=()=>{const x=s=>esc(s);const r=rowsOut();
+$("bKml").onclick=()=>{if(!canEdit())return;const x=s=>esc(s);const r=rowsOut();
   const pm=r.map((o,i)=>`<Placemark><name>${x(o.номер||o.тип)}</name><styleUrl>#${S.pts[i].kind}</styleUrl><ExtendedData>${Object.entries(o).map(([k,v])=>`<Data name="${x(k)}"><value>${x(v)}</value></Data>`).join("")}</ExtendedData><Point><coordinates>${S.pts[i].lon},${S.pts[i].lat}</coordinates></Point></Placemark>`).join("\n");
   download("sortavala_opory_tp.kml",`<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Освещение Сортавалы, этап 2</name><Style id="tp"><IconStyle><color>ff1e26b3</color></IconStyle></Style><Style id="pole"><IconStyle><scale>0.6</scale></IconStyle></Style>\n${pm}\n</Document></kml>`,"application/vnd.google-earth.kml+xml")};
 $("bTpl").onclick=()=>download("shablon_opory_tp.csv","﻿"+["Тип;Номер;Широта;Долгота;ТП;Примечание","ТП;ТП-12;61,70412;30,68861;;ул. Карельская","Опора освещения;12-01;61,70450;30,68920;ТП-12;","Опора освещения;12-02;61,70490;30,68990;ТП-12;","КТП;КТП-5;61,70610;30,69540;;","Опора освещения;5-01;61,70580;30,69480;КТП-5;"].join("\r\n"),"text/csv;charset=utf-8");
